@@ -3,6 +3,7 @@ using MediaOrganizer.Models;
 using MediaOrganizer.Models.Interfaces;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Linq;
 using System.Reflection;
 
 namespace MediaOrganizer.Core;
@@ -145,15 +146,15 @@ public static class Engine
 
     private static IEnumerable<IMediaFile> SkipProcessedFiles(this IEnumerable<IMediaFile> files)
     {
-        if (!Settings.EnableLogAndResume)
-            return files;
+        var ignores = Settings.Ignores;
+        var processed = Settings.EnableLogAndResume
+            ? LogHelper.ReadAllLogs().Where(i => i.Operation != LogOperation.Fail).Select(i => i.Source).ToArray()
+            : [];
 
-        var ignoreList = LogHelper.ReadAllLogs()
-            .Where(i => i.Operation == LogOperation.Fail)
-            .Select(i => i.Source)
-            .ToArray();
-
-        return files.Where(i => !ignoreList.Contains(i.OriginalSource));
+        foreach (var file in files)
+            if (!Array.Exists(processed, i => i.Equals(file.OriginalSource, StringComparison.OrdinalIgnoreCase))
+                && !Array.Exists(ignores, i => file.OriginalSource.Contains(i, StringComparison.OrdinalIgnoreCase)))
+                yield return file;
     }
     private static IEnumerable<IMediaFile> GetMediaFiles()
     {

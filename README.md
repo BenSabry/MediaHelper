@@ -58,7 +58,8 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 <b>*ClearBackupFilesOnComplete*</b>: (flag) Clear temp files on complete.<br />
 <b>*DeleteEmptyDirectoriesOnComplete*</b>: (flag) Delete empty directories on complete.<br />
 <b>*Target*</b>: (text) target directory path where all files will be transferred post-processing..<br />
-<b>*Sources*</b>: (array) paths of libraries or files which will be scanned<br />
+<b>*Sources*</b>: (array) paths of libraries or files which will be scanned.<br />
+<b>*Ignores*</b>: (array) ignore keywords. The program will ignore files that contain a specific keyword in their name or path. You can add folder names, file extensions, or parts of file names to the list of ignores list.<br />
 <br />
 <b>*Example:*</b><br />
 {<br />
@@ -74,5 +75,9 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 &nbsp;&nbsp;&nbsp;&nbsp;"D:\\Data\\Media\\Photos\\Personal\\Family",<br />
 &nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\GraduationPhoto.jpg",<br />
 &nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\GraduationVideo.mp4",<br />
-&nbsp;&nbsp;]<br />
+&nbsp;&nbsp;],<br />
+&nbsp;&nbsp;"Ignores": [<br />
+&nbsp;&nbsp;&nbsp;&nbsp;".avi",<br />
+&nbsp;&nbsp;&nbsp;&nbsp;"PersonalVideos",<br />
+&nbsp;&nbsp;],<br />
 }<br />
