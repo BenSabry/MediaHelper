@@ -38,7 +38,9 @@ public static class Engine
         if (Settings?.Sources is null
             || Settings.Sources.All(string.IsNullOrWhiteSpace))
         {
-            LogHelper.Error("PleaseAddSourcesToAppSettings");
+            LogHelper.Error("Please add Sources to AppSettings");
+            LogHelper.Warning(SettingsHelper.AppSettingsPath);
+
             return false;
         }
         return true;
