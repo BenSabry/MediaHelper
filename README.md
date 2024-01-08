@@ -51,7 +51,9 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 
 # AppSettings
 <b>*TasksCount*</b>: (number) of <b>*Tasks/Threads*</b> to work simultaneously.<br />
-<b>*EnableLogAndResume*</b>: (flag) to ensure continuity and avoid repetition, actions are recorded in the log.txt files located in <b>*.\Temp\Log.*</b> This allows for resumption from the exact point where you last left off, rather than starting anew.<br />
+<b>*EnableLogAndResume*</b>: (flag) to ensure continuity and avoid repetition, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;actions are recorded in the log.txt files located in <b>*.\Temp\Log.*</b> <br />
+&nbsp;&nbsp;&nbsp;&nbsp;This allows for resumption from the exact point where you last left off, rather than starting anew.<br />
 <b>*AttemptToFixMediaIncorrectOffsets*</b>: (flag) to fix file info (like duplications/incorrect offsets ...etc)<br />
 <b>*ClearBackupFilesOnComplete*</b>: (flag) Clear temp files on complete.<br />
 <b>*DeleteEmptyDirectoriesOnComplete*</b>: (flag) Delete empty directories on complete.<br />
