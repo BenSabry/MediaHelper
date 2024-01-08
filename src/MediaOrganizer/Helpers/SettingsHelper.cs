@@ -13,10 +13,7 @@ public static class SettingsHelper
             .AddJsonFile(AppSettingsPath)
             .Build();
 
-        var temp = new Settings(config);
-        config.Bind(temp);
-
-        return temp;
+        return new Settings(config);
     }
     private static void FixUnEscapedCharsInAppSettingsFile()
     {

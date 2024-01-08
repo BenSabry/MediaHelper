@@ -70,13 +70,11 @@ public static class Engine
     }
     private static void ValidateTasksConfig()
     {
-        if (Settings.TasksCount < 0 || Environment.ProcessorCount == 1)
+        if (Settings.TasksCount < 0)
             Settings.TasksCount = 1;
 
-        else if (Settings.TasksCount > 1 && Environment.ProcessorCount == 2)
-            Settings.TasksCount = 2;
-
-        else if (Settings.TasksCount > Environment.ProcessorCount / 2)
+        else if (!Settings.EnableSuperUserMode
+            && Settings.TasksCount > Environment.ProcessorCount / 2)
             Settings.TasksCount = Environment.ProcessorCount / 2;
     }
 

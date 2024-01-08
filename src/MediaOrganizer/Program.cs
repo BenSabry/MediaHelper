@@ -1,7 +1,15 @@
 ﻿using MediaOrganizer.Core;
 using MediaOrganizer.Helpers;
 
-Engine.Run();
+try
+{
+    Engine.Run();
+}
+catch (Exception ex)
+{
+    LogHelper.Error(ex.Message);
+    LogHelper.Notice(ex.StackTrace);
+}
 
 LogHelper.Warning("\nPress any key to exit.");
 LogHelper.ReadKey();

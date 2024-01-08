@@ -130,12 +130,20 @@ public class LogHelper : IDisposable
                 list.Add(new LogRecord(
                     DateTime.Parse(parts[0]),
                     long.Parse(parts[1]),
-                    Enum<LogOperation>.GetByName(parts[2]),
+                    GetOperation(parts[2]),
                     parts[3],
                     parts.Length > 4 ? parts[4] : string.Empty));
             }
 
         return list.ToArray();
+    }
+
+    private static LogOperation GetOperation(string operationName)
+    {
+        if (string.Equals(operationName, "Update", StringComparison.OrdinalIgnoreCase)) return LogOperation.Update;
+        if (string.Equals(operationName, "Copy", StringComparison.OrdinalIgnoreCase)) return LogOperation.Copy;
+
+        return LogOperation.Fail;
     }
     #endregion
 
