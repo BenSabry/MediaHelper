@@ -7,7 +7,7 @@ try
 }
 catch (Exception ex)
 {
-    LogHelper.Error(ex.Message);
+    LogHelper.Error($"\n{ex.Message}");
     LogHelper.Notice(ex.StackTrace);
 }
 

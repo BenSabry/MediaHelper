@@ -2,7 +2,7 @@
 <b>*Media Organizer*</b> is a tool engineered to assist in arranging your media files into the <b>*/Library/Year/Month/file*</b> structure, based on their creation date. It also aids in resolving any problems related to media file organization <b>*[Issues like these](#Fixable-Issues)*</b>.
 
 # Downloads
-<b>*Latest release*</b> [v0.5.0-alpha](https://github.com/BenSabry/MediaOrganizer/releases/tag/v0.5.0-alpha)<br />
+<b>*Latest release*</b> [v0.5.2-alpha](https://github.com/BenSabry/MediaOrganizer/releases/tag/v0.5.2-alpha)<br />
 <b>*All releases*</b> [releases](https://github.com/BenSabry/MediaOrganizer/releases)
 
 # Story
@@ -29,15 +29,13 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 
 # How it works
 1. Scan library files and directories added to <b>*Sources*</b> in <b>*[AppSettings.json](#AppSettings)*</b><br />
-2. Check if the file already has <b>*CreationDate*</b><br />
-&nbsp;&nbsp;&nbsp;2.1. if so: Move the file to proper directory <b>*Target\Year\Month\File.*</b><br />
-&nbsp;&nbsp;&nbsp;2.2. else:<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.2.1. Extract date from filename if any and all dates from file info and choose the oldest<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.2.2. Update the file info <b>*CreationDate*</b> (after creating temp file as Backup)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.2.3. Attempt to fix file info (like duplications/incorrect offsets ...etc)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.2.4. Copy the file to proper directory <b>*Target\Year\Month\File.*</b><br /><br />
-3. Clear temp files (which created as backup incase App/Windows closed improperly)<br />
-4. Delete empty directories<br /><br />
+2. Extract all available dates from the metadata of a file (such as TakenDate, CreateDate, etc.) and from the filename, using a wide range of supported datetime format patterns.
+3. Select the oldest valid datetime.
+4. Copy the file to proper directory <b>*Target\Year\Month\File.*</b> based on oldest datetime.<br />
+5. Update the new file info <b>*TakenDate*</b>/<b>*CreationDate*</b>
+6. Attempt to fix file info (like duplications/incorrect offsets etc.)<br />
+7. Remove any empty directories or temporary backups that were created by the program.<br /><br />
+
 
 # Fixable Issues
 [<b>*Synology Photos: Not Using Taken Date*</b>](https://www.reddit.com/r/synology/comments/kgy604/synology_photos_not_using_taken_date/)<br />
@@ -54,14 +52,14 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 <b>*EnableLogAndResume*</b>: (flag) to ensure continuity and avoid repetition, <br />
 &nbsp;&nbsp;&nbsp;&nbsp;actions are recorded in the log.txt files located in <b>*.\Temp\Log.*</b> <br />
 &nbsp;&nbsp;&nbsp;&nbsp;This allows for resumption from the exact point where you last left off, rather than starting anew.<br />
-<b>*AttemptToFixMediaIncorrectOffsets*</b>: (flag) to fix file info (like duplications/incorrect offsets ...etc)<br />
+<b>*AttemptToFixMediaIncorrectOffsets*</b>: (flag) to fix file info (like duplications/incorrect offsets etc.)<br />
 <b>*ClearBackupFilesOnComplete*</b>: (flag) Clear temp files on complete.<br />
 <b>*DeleteEmptyDirectoriesOnComplete*</b>: (flag) Delete empty directories on complete.<br />
 <b>*Target*</b>: (text) target directory path where all files will be transferred post-processing..<br />
 <b>*Sources*</b>: (array) paths of libraries or files which will be scanned.<br />
 <b>*Ignores*</b>: (array) ignore keywords. The program will ignore files that contain a specific keyword in their name or path. You can add folder names, file extensions, or parts of file names to the list of ignores list.<br />
-<br />
-<b>*Example:*</b><br />
+
+# AppSettings Example
 {<br />
 &nbsp;&nbsp;"TasksCount": 2,<br />
 &nbsp;&nbsp;"EnableLogAndResume": true,<br />

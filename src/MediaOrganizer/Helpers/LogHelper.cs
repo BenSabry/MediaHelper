@@ -6,10 +6,9 @@ public class LogHelper : IDisposable
 {
     #region Fields-Static
     private static readonly string TempDirectory = Path.Combine(CommonHelper.TempDirectory, "Log");
-    private static readonly ConsoleColor DefaultConsoleColor = ConsoleColor.Gray;
+    private const ConsoleColor DefaultConsoleColor = ConsoleColor.Gray;
 
     private static readonly string GlobalLogFilePath;
-    private static readonly Guid GlobalId = Guid.NewGuid();
     private static readonly object GlobalLock = new();
 
     private static Dictionary<Guid, ConcurrentQueue<(DateTime Time, string Value)>> DB = new();
@@ -31,7 +30,7 @@ public class LogHelper : IDisposable
             + $"{CommonHelper.FormatNumberToLength(date.Day, length)}"
             + $"{CommonHelper.FormatNumberToLength(date.Hour, length)}"
             + $"{CommonHelper.FormatNumberToLength(date.Minute, length)}"
-            + $".{GlobalId.ToString().Replace("-", string.Empty)}.txt";
+            + $".{Guid.NewGuid().ToString().Replace("-", string.Empty)}.txt";
 
         lock (GlobalLock)
         {
@@ -129,21 +128,13 @@ public class LogHelper : IDisposable
                 var parts = line.Split(LogSeparator);
                 list.Add(new LogRecord(
                     DateTime.Parse(parts[0]),
-                    long.Parse(parts[1]),
-                    GetOperation(parts[2]),
+                    Enum<LogOperation>.GetByName(parts[1]),
+                    long.Parse(parts[2]),
                     parts[3],
                     parts.Length > 4 ? parts[4] : string.Empty));
             }
 
         return list.ToArray();
-    }
-
-    private static LogOperation GetOperation(string operationName)
-    {
-        if (string.Equals(operationName, "Update", StringComparison.OrdinalIgnoreCase)) return LogOperation.Update;
-        if (string.Equals(operationName, "Copy", StringComparison.OrdinalIgnoreCase)) return LogOperation.Copy;
-
-        return LogOperation.Fail;
     }
     #endregion
 
@@ -160,10 +151,12 @@ public class LogHelper : IDisposable
     #endregion
 }
 
-public record struct LogRecord(DateTime DateTime, long Index, LogOperation Operation, string Source, string Destination);
+public record struct LogRecord(DateTime DateTime, LogOperation Operation, long Index, string Source, string Destination);
 public enum LogOperation
 {
     Update,
     Copy,
-    Fail
+    Duplicate,
+    Fail,
+    NoDate
 }

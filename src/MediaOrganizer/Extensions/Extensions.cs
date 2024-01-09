@@ -22,7 +22,7 @@ public static class Exetnsions
         {
             foreach (var item in source)
             {
-                queues[totalEnumurationCount % parallelTasksCount].Enqueue(item);
+                queues[GetIteratedIndex(totalEnumurationCount, parallelTasksCount)].Enqueue(item);
                 Interlocked.Increment(ref totalEnumurationCount);
             }
         });
@@ -37,12 +37,12 @@ public static class Exetnsions
             args[taskIndex] = getPerTaskArgument();
             tasks[taskIndex] = Task.Run(() =>
             {
-                while (!enumerator.IsCompleted || !queues[taskIndex].IsEmpty)
+                while (!enumerator.IsCompleted || !queues[GetIteratedIndex(taskIndex, parallelTasksCount)].IsEmpty)
                 {
                     Task.Delay(delayInMilliseconds).Wait();
-                    while (queues[taskIndex % parallelTasksCount].TryDequeue(out var item))
+                    while (queues[GetIteratedIndex(taskIndex, parallelTasksCount)].TryDequeue(out var item))
                     {
-                        action(item, taskIndex, args[taskIndex % parallelTasksCount]);
+                        action(item, taskIndex, args[GetIteratedIndex(taskIndex, parallelTasksCount)]);
                         taskIndex += parallelTasksCount;
                         Interlocked.Increment(ref currentEnumerationIndex);
                     }
@@ -68,6 +68,8 @@ public static class Exetnsions
 
     public static Task ParallelForEachTask<TInput, TArg>(this IEnumerable<TInput> source, int parallelTasksCount, Action<TInput, long, TArg> action, Func<TArg> getPerTaskArgument, Action<long, long> progressReportAction, int delayInMilliseconds = 500)
     => Task.Run(() => ParallelForEach(source, parallelTasksCount, action, getPerTaskArgument, progressReportAction, delayInMilliseconds));
+
+    private static int GetIteratedIndex(int number, int count) => number % count;
     #endregion
 
     #region Task
@@ -105,5 +107,25 @@ public static class Exetnsions
     public static bool IsNumber(this char c) => c >= '0' && c <= '9';
     public static bool IsLetter(this char c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     public static bool NotNumberOrLetter(this char c) => !IsNumber(c) && !IsLetter(c);
+    #endregion
+
+    #region String
+    public static string ReplaceArabicNumbers(this string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        return text
+            .Replace('٠', '0')
+            .Replace('١', '1')
+            .Replace('٢', '2')
+            .Replace('٣', '3')
+            .Replace('٤', '4')
+            .Replace('٥', '5')
+            .Replace('٦', '6')
+            .Replace('٧', '7')
+            .Replace('٨', '8')
+            .Replace('٩', '9');
+    }
     #endregion
 }

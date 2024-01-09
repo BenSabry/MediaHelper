@@ -1,6 +1,7 @@
 ﻿using MediaOrganizer.Helpers;
 using MediaOrganizer.Models;
 using MediaOrganizer.Models.Interfaces;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Linq;
@@ -15,7 +16,7 @@ public static class Engine
 
     private static int Copies;
     private static int Updates;
-    private static int Fails;
+    private static int Skips;
 
     private static readonly Dictionary<string, string> Versions;
     private static readonly Process CurrentProcess = Process.GetCurrentProcess();
@@ -112,14 +113,15 @@ public static class Engine
     {
         (FileInfo file, FileInfo? json, string src) = (item.GetFile(), item.GetJsonFile(), item.OriginalSource);
 
-        var dates = new DateTime[][]
+        var list = new List<DateTime[]>()
         {
-            DateHelper.ExtractAllPossibleDateTimes(file.Name),
+            DateHelper.ExtractAllPossibleDateTimes(file.Name.ReplaceArabicNumbers()),
             exif.ReadAllDates(file.FullName),
-            exif.ReadAllDatesFromJson(json),
+        };
 
-            [ exif.ReadMediaDefaultCreationDate(file.FullName) ]
-        }
+        if (json.Exists) list.Add(exif.ReadAllDatesFromJson(json));
+
+        var dates = list
             .SelectMany()
             .Distinct()
             .Where(DateHelper.IsValidDateTime)
@@ -131,7 +133,7 @@ public static class Engine
             if (TryCopyFileToDirectoryBasedOnDate(ref file, src, index, date, logger))
                 UpdateMediaTargetedDateTime(file, index, date, exif, logger);
         }
-        else LogFail(logger, index, src);
+        else LogNoDate(logger, index, src);
     }
     private static void CleanUp()
     {
@@ -146,9 +148,15 @@ public static class Engine
 
     private static IEnumerable<IMediaFile> SkipProcessedFiles(this IEnumerable<IMediaFile> files)
     {
+        var ignoredOps = new LogOperation[] { LogOperation.Fail };
         var ignores = Settings.Ignores;
         var processed = Settings.EnableLogAndResume
-            ? LogHelper.ReadAllLogs().Where(i => i.Operation != LogOperation.Fail).Select(i => i.Source).ToArray()
+            ? LogHelper.ReadAllLogs()
+                .GroupBy(i => i.Source)
+                .Where(group => group.Any(i => !ignoredOps.Contains(i.Operation)))
+                .SelectMany()
+                .Select(i => i.Source)
+                .ToArray()
             : [];
 
         foreach (var file in files)
@@ -216,6 +224,8 @@ public static class Engine
     }
     private static void DeleteEmptyDirectories(DirectoryInfo directory)
     {
+        if (!directory.Exists) return;
+
         foreach (var dir in directory.EnumerateDirectories())
             DeleteEmptyDirectories(dir);
 
@@ -257,7 +267,7 @@ public static class Engine
     private static bool TryCopyFile(LogHelper logger, ref FileInfo file, string originalSource, long index, string dest)
     {
         if (File.Exists(dest))
-            LogFail(logger, index, file.FullName);
+            LogDuplicate(logger, index, file.FullName, dest);
 
         else
             try
@@ -268,10 +278,7 @@ public static class Engine
                 LogCopy(logger, index, originalSource, dest);
                 return true;
             }
-            catch
-            {
-                LogFail(logger, index, dest);
-            }
+            catch { LogFail(logger, index, dest); }
 
         return false;
     }
@@ -299,10 +306,20 @@ public static class Engine
         Interlocked.Increment(ref Updates);
         logger.Log(LogOperation.Update, index.ToString(), src);
     }
+    private static void LogDuplicate(LogHelper logger, long index, string src, string dest)
+    {
+        Interlocked.Increment(ref Skips);
+        logger.Log(LogOperation.Duplicate, index.ToString(), src, dest);
+    }
     private static void LogFail(LogHelper logger, long index, string src)
     {
-        Interlocked.Increment(ref Fails);
+        Interlocked.Increment(ref Skips);
         logger.Log(LogOperation.Fail, index.ToString(), src);
+    }
+    private static void LogNoDate(LogHelper logger, long index, string src)
+    {
+        Interlocked.Increment(ref Skips);
+        logger.Log(LogOperation.NoDate, index.ToString(), src);
     }
     private static void LogProgress(long index, long total)
     {
@@ -322,7 +339,7 @@ public static class Engine
             + $"Remaining time: {CommonHelper.FormatNumberToLength(r.Hours, 2)}:{CommonHelper.FormatNumberToLength(r.Minutes, 2)}:{CommonHelper.FormatNumberToLength(r.Seconds, 2)}\n"
             + $"Tasks Running: {Settings.TasksCount}   RAM: {MegaBytesOfRAM}MB\n\n"
 
-            + $"Currnet: {index}/{total}\nCopied: {Copies}\nUpdated: {Updates}\nSkipped: {Fails}\n\n"
+            + $"Currnet: {index}/{total}\nCopied: {Copies}\nUpdated: {Updates}\nSkipped: {Skips}\n\n"
             + $"Processing Speed:\n"
             + $"\t{CommonHelper.FormatToLength(((int)processes).ToString(), length, separator)} files per second\n"
             + $"\t{CommonHelper.FormatToLength(((int)(processes * 60)).ToString(), length, separator)} files per minute\n"

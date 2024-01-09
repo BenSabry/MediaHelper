@@ -72,6 +72,8 @@ public sealed class ArchivedMediaFile : AbstractMediaFile
             Path.Combine(SharedTempDirectory.FullName,
             Guid.NewGuid().ToString()));
 
+        CurrentTempDirectory.Create();
+
         using (var archive = ZipFile.OpenRead(ArchiveFileName))
         {
             archive.GetEntry(AddJsonExtension(Entry.FullName))?

@@ -6,11 +6,17 @@ public class ExifHelper
     #region Fields-Static
     private const string ExifTool = "exiftool.exe";
     private const string ExifDateFormat = "yyyy:MM:dd HH:mm:sszzz";
+    private const char ExifTagsWriteSeparator = ' ';
     private const string ExifDefaultCreationTag = "CreateDate";
+    private const string ExifReadAllDatesArgs = $"-T -AllDates -FileCreateDate -FileModifyDate -FileAccessDate -{ExifDefaultCreationTag}";
+
     private static readonly string[] ExifTargetedDateTimeTags = [ExifDefaultCreationTag, "FileCreateDate", "FileModifyDate"];
+    private static readonly string ExifWriteAllDatesValuePlaceHolder = Guid.NewGuid().ToString();
+    private static readonly string ExifWriteAllDatesArgs;
     private static readonly string[] SupportedMediaExtensions;
 
     private const bool IgnoreMinorErrorsAndWarnings = true;
+    private static readonly object GlobalLock = new object();
 
     private static readonly string ToolsDirectory = CommonHelper.ToolsDirectory;
     private static readonly string TempDirectory = Path.Combine(CommonHelper.BaseDirectory, @"Temp\Tools");
@@ -41,6 +47,10 @@ public class ExifHelper
             .Split(' ')
             .Select(i => $".{i}")
             .ToArray();
+
+        ExifWriteAllDatesArgs = new string(string.Join(ExifTagsWriteSeparator,
+                ExifTargetedDateTimeTags.Select(i => $"\"-{i}={ExifWriteAllDatesValuePlaceHolder}\""))
+                .ToArray());
     }
     public ExifHelper(bool attemptToFixIncorrectOffsets, bool clearBackupFilesOnComplete)
     {
@@ -58,8 +68,9 @@ public class ExifHelper
     ~ExifHelper()
     {
         var path = Path.Combine(TempDirectory, Id);
-        if (File.Exists(path))
-            File.Delete(path);
+        lock (GlobalLock)
+            if (File.Exists(path))
+                File.Delete(path);
     }
     #endregion
 
@@ -180,41 +191,10 @@ public class ExifHelper
     #endregion
 
     #region Behavior-Instance
-    //private string GenericReadTagValue(string path, string tag)
-    //{
-    //    TryReadTagValue(path, tag, out var value);
-    //    return value;
-    //}
-    //private bool TryReadTagValue(string path, string tag, out string value)
-    //{
-    //    const char splitter = ':';
-    //    var tags = ExifRead(Id, "-s", path)
-    //        .Split("\n").Select(i => i.Split(splitter))
-    //        .Where(i => i[0].Trim().Equals(tag, StringComparison.OrdinalIgnoreCase));
-
-    //    if (tags.Any())
-    //    {
-    //        value = tags.Select(i => string.Join(splitter, i.Skip(1)).Trim()).First();
-    //        return true;
-    //    }
-
-    //    value = string.Empty;
-    //    return false;
-    //}
-
-    //public bool TryReadMinimumDate(string path, out DateTime result)
-    //{
-    //    result = ReadMinimumDate(path);
-    //    return result != default;
-    //}
-    //public DateTime ReadMinimumDate(string path)
-    //    => ReadAllDates(path).Where(DateHelper.IsValidDateTime).MinOrDefault();
     public DateTime[] ReadAllDates(string path)
     {
-        const string args = "-T -AllDates";
         const char Separator = '\t';
-
-        return ExifRead(Id, args, path)
+        return ExifRead(Id, ExifReadAllDatesArgs, path)
             .Split(Separator, StringSplitOptions.RemoveEmptyEntries)
             .Distinct()
             .Select(DateHelper.ExtractAllPossibleDateTimes)
@@ -222,157 +202,18 @@ public class ExifHelper
             .Distinct()
             .ToArray();
     }
-    public DateTime[] ReadAllDatesFromJson(FileInfo jsonFile)
-    {
-        return [];
-
-        //if (!jsonFile.Exists) return [];
-
-        //var dates = ReadAllDates(jsonFile.FullName);
-        //if (dates.Any())
-        //{
-
-        //}
-
-        //return [];
-
-
-        //#region CreateTemps
-        //var f1 = new FileInfo(mediaFile.FullName);
-        //var dest1 = Path.Combine(
-        //    f1.FullName.Remove(f1.FullName.Length - f1.Name.Length),
-        //    $"{Guid.NewGuid()}{f1.Extension}");
-        //var file = f1.CopyTo(dest1, true);
-
-        //        var f2 = new FileInfo(jsonFile.FullName);
-        //        var dest2 = Path.Combine(
-        //            f2.FullName.Remove(f2.FullName.Length - f2.Name.Length),
-        //            $"{Guid.NewGuid()}{f2.Extension}");
-        //        var json = f2.CopyTo(dest2, true);
-        //        #endregion
-
-        //        /*
-        //        FileModifyDate                  : 2023:11:03 00:49:32+02:00
-        //FileAccessDate                  : 2024:01:04 00:36:36+02:00
-        //FileCreateDate                  : 2024:01:04 00:31:05+02:00
-
-        //        */
-
-        //        var jd = ExifRead(Id, "-a -s", json.FullName);
-        //        var fd = ExifRead(Id, "-s -T -AllDates -FileModifyDate -FileAccessDate -FileCreateDate", json.FullName);
-
-        //        var dates = ReadAllDates(json.FullName);
-
-        //        throw new NotImplementedException();
-
-
-        //var o1 = ExifRead(Id, "-s", file.FullName);
-        //var o2 = ExifRead(Id, "", file.FullName);
-
-        //var date = ExifRead(Id, $"-T -{ExifDefaultCreationTag}", file.FullName);
-        //var rDate = ReadMediaDefaultCreationDate(file.FullName);
-
-        //var allDates = ExifRead(Id, "-T -AllDates", file.FullName);
-        //var dates = ReadAllDates(file.FullName);
-
-        //var nDate = dates.FirstOrDefault();
-        //var uDate = ReadMediaDefaultCreationDate(file.FullName);
-
-
-
-
-        //var dates = new DateTime[][]
-        //{
-        //    //ReadAllDates(mediaFile.FullName),
-        //    ReadAllDates(jsonFile.FullName),
-        //}
-        //.SelectMany()
-        //.Distinct()
-        //.ToArray();
-
-        //if (dates.Any())
-        //{
-
-        //}
-
-        //var jd = ExifRead(Id, "-a -s -json:all", jsonFile.FullName);
-        //var fd = ExifRead(Id, "-s", jsonFile.FullName);
-        //var dates 
-        //return;
-
-        //        var x = GenericReadTagValue(f2.FullName, "CreationTimeFormatted");
-
-        //        /*
-        //         -tagsfromfile "%d/%F.json" "-GPSAltitude<GeoDataAltitude" "-GPSLatitude<GeoDataLatitude"
-        //"-GPSLatitudeRef<GeoDataLatitude" "-GPSLongitude<GeoDataLongitude" "-GPSLongitudeRef<GeoDataLongitude"
-        //-Description -d %s "-Alldates<PhotoTakenTimeTimestamp"
-        //        */
-
-
-        //        var jd = ExifRead(Id, "-a -s -json:all", json.FullName);
-        //        var fd = ExifRead(Id, "-s", file.FullName);
-
-        //        var fileDateOrig = ReadMediaDefaultCreationDate(file.FullName).AddDays(1).AddMonths(1);
-        //        TryUpdateMediaTargetedDateTime(file.FullName, fileDateOrig);
-
-        //        var d2 = ReadMediaDefaultCreationDate(file.FullName);
-        //        if (fileDateOrig == d2)
-        //        {
-
-        //        }
-        //        else
-        //        {
-
-        //        }
-
-
-
-        //        //var o1 = ExifRead(Id, "-s", file.FullName);
-        //        //var o2 = ExifRead(Id, "", file.FullName);
-
-        //        //var date = ExifRead(Id, $"-T -{ExifDefaultCreationTag}", file.FullName);
-        //        //var rDate = ReadMediaDefaultCreationDate(file.FullName);
-
-        //        //var allDates = ExifRead(Id, "-T -AllDates", file.FullName);
-        //        //var dates = ReadAllDates(file.FullName);
-
-        //        //var nDate = dates.FirstOrDefault();
-        //        //TryUpdateMediaTargetedDateTime(file.FullName, nDate);
-        //        //var uDate = ReadMediaDefaultCreationDate(file.FullName);
-
-        //        file.Delete();
-        throw new NotImplementedException();
-    }
-    //public bool TryReadMediaDefaultCreationDate(string path, out DateTime dateTime)
-    //{
-    //    dateTime = ReadMediaDefaultCreationDate(path);
-    //    return DateHelper.IsValidDateTime(dateTime);
-    //}
-    public DateTime ReadMediaDefaultCreationDate(string path)
-    {
-        DateHelper.TryExtractMinimumValidDateTime(
-            ExifRead(Id, $"-T -{ExifDefaultCreationTag}", path),
-            out var dateTime);
-
-        return dateTime;
-    }
+    public DateTime[] ReadAllDatesFromJson(FileInfo jsonFile) => ReadAllDates(jsonFile.FullName);
     public bool TryUpdateMediaTargetedDateTime(string path, DateTime dateTime)
     {
-        var formatedDateTime = DateTimeFormat(dateTime);
-
-        const char sperator = ' ';
-        var args = new string(
-            string.Join(sperator,
-                ExifTargetedDateTimeTags.Select(i => $"\"-{i}={formatedDateTime}\""))
-                .ToArray());
-
-        return TryExifWrite(Id, args, path, AttemptToFixIncorrectOffsets, ClearBackupFilesOnComplete);
+        return TryExifWrite(Id, ExifWriteAllDatesArgs.Replace(ExifWriteAllDatesValuePlaceHolder, DateTimeFormat(dateTime)),
+            path, AttemptToFixIncorrectOffsets, ClearBackupFilesOnComplete);
     }
 
     internal static void CleanUp()
     {
-        if (Directory.Exists(TempDirectory))
-            Directory.Delete(TempDirectory, true);
+        lock (GlobalLock)
+            if (Directory.Exists(TempDirectory))
+                Directory.Delete(TempDirectory, true);
     }
     #endregion
 }
