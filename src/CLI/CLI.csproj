@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Trimming>full</Trimming>
+        <PublishAot>True</PublishAot>
+        <PackageProjectUrl>https://github.com/BenSabry/MediaOrganizer</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/BenSabry/MediaOrganizer</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <AssemblyVersion>0.7.0</AssemblyVersion>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <FileVersion>0.7.0</FileVersion>
+        <AssemblyName>MediaOrganizer</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Include="..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="AppSettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Update="SonarAnalyzer.CSharp" Version="9.17.0.82934" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Properties\PublishProfiles\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Application\Application.csproj" />
+      <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+      <ProjectReference Include="..\Presentation\Presentation.csproj" />
+    </ItemGroup>
+
+</Project>
