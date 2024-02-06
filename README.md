@@ -2,7 +2,7 @@
 <b>*Media Organizer*</b> is a tool engineered to assist in arranging your media files into the <b>*/Library/Year/Month/file*</b> structure, based on their creation date. It also aids in resolving any problems related to media file organization <b>*[Issues like these](#Fixable-Issues)*</b>.
 
 # Downloads
-<b>*Latest release*</b> [v0.5.2-alpha](https://github.com/BenSabry/MediaOrganizer/releases/tag/v0.5.2-alpha)<br />
+<b>*Latest release*</b> [v0.7.0-alpha](https://github.com/BenSabry/MediaOrganizer/releases/tag/v0.7.0-alpha)<br />
 <b>*All releases*</b> [releases](https://github.com/BenSabry/MediaOrganizer/releases)
 
 # Story
