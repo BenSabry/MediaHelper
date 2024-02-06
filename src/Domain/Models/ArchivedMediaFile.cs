@@ -1,5 +1,6 @@
 ﻿using Domain.Abstracts;
 using Domain.Interfaces;
+using Shared.Extensions;
 using System.IO.Compression;
 
 namespace Domain.Models;
@@ -9,6 +10,7 @@ public sealed class ArchivedMediaFile : AbstractMediaFile
     private readonly ZipArchiveEntry Entry;
     private readonly string ArchiveFileName;
     private readonly DirectoryInfo TempDirectory;
+    private readonly bool FixArabicNumbersInName;
 
     private bool IsInitialized;
     private MediaFile MediaFile;
@@ -24,7 +26,9 @@ public sealed class ArchivedMediaFile : AbstractMediaFile
         ArgumentNullException.ThrowIfNull(settings);
 
         IsInitialized = false;
-        TempDirectory = Directory.CreateDirectory(Path.Combine(settings.TempZipPath, Guid.NewGuid().ToString()));
+        FixArabicNumbersInName = settings.AutoFixArabicNumbersInFileName;
+
+        TempDirectory = new DirectoryInfo(Path.Combine(settings.TempZipPath, Guid.NewGuid().ToString()));
 
         Entry = item;
         ArchiveFileName = archive.FullName;
@@ -51,18 +55,6 @@ public sealed class ArchivedMediaFile : AbstractMediaFile
         Initialize();
         return MediaFile.GetJsonFile();
     }
-    public override void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing && IsInitialized)
-        {
-            MediaFile.Dispose();
-        }
-    }
 
     private void Initialize()
     {
@@ -77,12 +69,34 @@ public sealed class ArchivedMediaFile : AbstractMediaFile
 
         using (var archive = ZipFile.OpenRead(ArchiveFileName))
         {
-            archive.GetEntry(AddJsonExtension(Entry.FullName))?
-                .ExtractToFile(Path.Combine(TempDirectory.FullName, AddJsonExtension(Entry.Name)));
+            var path = Path.Combine(TempDirectory.FullName, FixArabicNumbersInName
+                ? Entry.Name.ReplaceArabicNumbers() : Entry.Name);
 
-            archive.GetEntry(Entry.FullName)!.ExtractToFile(Path.Combine(TempDirectory.FullName, Entry.Name));
-            MediaFile = new MediaFile(new FileInfo(Path.Combine(TempDirectory.FullName, Entry.Name)));
+            archive.GetEntry(AddJsonExtension(Entry.FullName))?.ExtractToFile(AddJsonExtension(path));
+            archive.GetEntry(Entry.FullName)!.ExtractToFile(path);
+
+            MediaFile = new MediaFile(new FileInfo(path));
         }
+    }
+    #endregion
+
+    #region Dispose
+    private bool disposed;
+    protected override void Dispose(bool disposing)
+    {
+        if (disposed) return;
+        if (disposing)
+        {
+
+        }
+
+        if (IsInitialized)
+        {
+            MediaFile.Dispose();
+            TempDirectory.Delete(true);
+        }
+
+        disposed = true;
     }
     #endregion
 }

@@ -2,15 +2,15 @@
 <b>*Media Organizer*</b> is a tool engineered to assist in arranging your media files into the <b>*/Library/Year/Month/file*</b> structure, based on their creation date. It also aids in resolving any problems related to media file organization <b>*[Issues like these](#Fixable-Issues)*</b>.
 
 # Downloads
-<b>*Latest release*</b> [v0.7.0-alpha](https://github.com/BenSabry/MediaOrganizer/releases/tag/v0.7.0-alpha)<br />
-<b>*All releases*</b> [releases](https://github.com/BenSabry/MediaOrganizer/releases)
+<b>*Latest release*</b> [v0.10.0-beta](https://github.com/BenSabry/MediaHelper/releases/tag/v0.10.0-beta)<br />
+<b>*All releases*</b> [releases](https://github.com/BenSabry/MediaHelper/releases)
 
 # Story
 I’m a proud owner of a Synology (DS720+) and I must say, I’m quite fond of it, especially the Photos/Drive apps.<br />
 
-Previously, I was a Google Photos user, so I downloaded a complete backup of all my media from Google and transferred it to the Synology Photos folder. However, I encountered a significant issue - the order of the media. All my media was arranged according to the date I uploaded it to Synology, not the creation date or date taken, etc. After some research, I found numerous online discussions about this issue, even Synology Photos’ solution of manually modifying the image date is good but not feasible for a batch of more than 20,000 files!<br />
+Previously, I was a Google Photos user, so I downloaded a complete backup of all my media from Google and transferred it to the Synology Photos folder. However, I encountered a significant issue - Some media files lack certain metadata, and the order of the media. All my media was arranged according to the date I uploaded it to Synology, not the creation date or date taken, etc. After some research, I found numerous online discussions about this issue, even Synology Photos’ solution of manually modifying the image date is good but not feasible for a batch of more than 20,000 files!<br />
 
-So, I decided to tackle this problem head-on and develop my own solution. After several days of development and testing on my own media library, I’m happy to report that it’s complete and all my files are now properly sorted on Synology Photos.<br />
+So, I decided to tackle this problem head-on and develop my own solution. After several days of development and testing on my own media library, I’m happy to report that it’s complete and all my files are now properly sorted on Synology Photos, complete with the **retrieved metadata** extracted from the JSON files included in my Google Takeout backup.<br />
 
 Why am I sharing this? Because I experienced this frustrating problem and I want to help others who might be facing the same issue. If you’re interested, you can try it out and share your feedback.<br />
 
@@ -25,16 +25,18 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 
 # How to use
 1. Add the path of your library to <b>*Sources*</b> and <b>*Target*</b> in <b>*[AppSettings.json](#AppSettings)*</b> file<br />
-2. run the executable <b>*MediaOrganizer.exe*</b> and wait<br />
+2. run the executable <b>*MediaHelper.exe*</b> and wait<br />
 
 # How it works
 1. Scan library files and directories added to <b>*Sources*</b> in <b>*[AppSettings.json](#AppSettings)*</b><br />
-2. Extract all available dates from the metadata of a file (such as TakenDate, CreateDate, etc.) and from the filename, using a wide range of supported datetime format patterns.
-3. Select the oldest valid datetime.
-4. Copy the file to proper directory <b>*Target\Year\Month\File.*</b> based on oldest datetime.<br />
-5. Update the new file info <b>*TakenDate*</b>/<b>*CreationDate*</b>
-6. Attempt to fix file info (like duplications/incorrect offsets etc.)<br />
-7. Remove any empty directories or temporary backups that were created by the program.<br /><br />
+2. Continue processing from where files were last handled, skipping those already processed.<br />
+3. Extract metadata from JSON files if any included (e.g., Google Takeout JSON files).<br />
+4. Extract dates from file metadata, JSON files, and filenames, utilizing a variety of supported datetime format patterns, and then select the **earliest** datetime.<br />
+5. Copy the file to proper directory <b>*Target\Year\Month\File.*</b> based on oldest datetime.<br />
+6. Update the missing metadata using information from the JSON files.<br />
+7. Update the creation date tags (e.g., TakenDate, CreateDate) with the earliest valid datetime discovered.<br />
+8. Attempt to fix file metadata (like duplications/incorrect offsets etc.)<br />
+9. Remove any empty directories or temporary backups that were created.<br /><br />
 
 
 # Fixable Issues
@@ -53,6 +55,7 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 <b>*AttemptToFixMediaIncorrectOffsets*</b>: (flag) to fix file info (like duplications/incorrect offsets etc.)<br />
 <b>*ClearBackupFilesOnComplete*</b>: (flag) Clear temp files on complete.<br />
 <b>*DeleteEmptyDirectoriesOnComplete*</b>: (flag) Delete empty directories on complete.<br />
+<b>*AutoFixArabicNumbersInFileName*</b>: (flag) Fix by replacing Arabic numbers with English numbers.
 <b>*Target*</b>: (text) target directory path where all files will be transferred post-processing..<br />
 <b>*Sources*</b>: (array) paths of libraries or files which will be scanned.<br />
 <b>*Ignores*</b>: (array) ignore keywords. The program will ignore files that contain a specific keyword in their name or path. You can add folder names, file extensions, or parts of file names to the list of ignores list.<br />
@@ -64,6 +67,7 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 &nbsp;&nbsp;"AttemptToFixMediaIncorrectOffsets": true,<br />
 &nbsp;&nbsp;"ClearBackupFilesOnComplete": true,<br />
 &nbsp;&nbsp;"DeleteEmptyDirectoriesOnComplete": true,<br />
+&nbsp;&nbsp;"AutoFixArabicNumbersInFileName": true,<br />
 &nbsp;&nbsp;"Target": "\\\\SynologyNAS\\home\\Photos\\PhotoLibrary",<br />
 &nbsp;&nbsp;"Sources": [<br />
 &nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\Google-Takeout.zip",<br />

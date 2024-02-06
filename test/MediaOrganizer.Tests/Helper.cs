@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace MediaOrganizer.Tests;
+namespace MediaHelper.Tests;
 public class Helper
 {
     public static bool DidProcessStartInTimeRange(string processName, int waitTimeInMilliseconds, int delayInMillisecods = 10)

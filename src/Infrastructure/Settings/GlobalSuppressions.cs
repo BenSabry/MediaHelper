@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "<Pending>", Scope = "member", Target = "~M:Infrastructure.Helpers.ExifService.#ctor(Domain.Interfaces.ISettings,Infrastructure.Wrappers.ExifToolWrapper)")]
+[assembly: SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "<Pending>", Scope = "member", Target = "~M:Infrastructure.Services.LoggerService.SaveLog")]

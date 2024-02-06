@@ -8,8 +8,10 @@ public interface ISettings
     public int TasksCount { get; }
     public bool EnableLogAndResume { get; }
     public bool AttemptToFixIncorrectOffsets { get; }
-    public bool ClearBackupFilesOnComplete { get; }
-    public bool DeleteEmptyDirectoriesOnComplete { get; }
+    public bool ClearBackupFilesOnComplete { get; }         //TODO: not needed anymore
+    public bool DeleteEmptyDirectoriesOnComplete { get; }   //TODO: not needed anymore
+    public bool AutoFixArabicNumbersInFileName { get; }
+
     public string Target { get; }
     public string[] Sources { get; }
     public string[] Ignores { get; }

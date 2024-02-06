@@ -1,16 +1,9 @@
 ﻿namespace Application.Infrastructure.Services;
-public interface IExifService : IDisposable
+
+public interface IExifService : IExifCoreService, IDisposable
 {
-    public string ExifToolVersion { get; }
-    public string ExifWatcherVersion { get; }
+    Dictionary<string, string> ReadMetadata(string path);
+    Dictionary<string, string> ReadJsonMetadata(string path);
 
-    string ClearBackupFiles(params string[] sources);
-
-    bool IsSupportedMediaFile(FileInfo file);
-    bool IsSupportedMediaFile(string fileName);
-
-    DateTime[] ReadAllDates(string path);
-    DateTime[] ReadAllDatesFromJson(FileInfo jsonFile);
-
-    bool TryUpdateMediaTargetedDateTime(string path, DateTime dateTime);
+    bool TryWriteMetadata(string path, Dictionary<string, string> tags);
 }

@@ -1,6 +1,6 @@
 using FluentAssertions;
 
-namespace MediaOrganizer.Tests
+namespace MediaHelper.Tests
 {
     [TestClass]
     public class ExifWatcherWrapperTest

@@ -9,15 +9,17 @@ using Presentation;
 using (var service = GetService<CoreService>())
     await service.RunAsync();
 
+
+
 static T GetService<T>()
     => Host.CreateDefaultBuilder()
     .ConfigureAppConfiguration(config => config.Sources.Clear())
     .ConfigureServices(services =>
     {
-        services.AddSettings();
-        services.AddApplication();
-        services.AddInfrastructure();
-        services.AddPresentation();
+        services.AddSettings()
+            .AddApplication()
+            .AddInfrastructure()
+            .AddPresentation();
     })
     .Build()
     .Services

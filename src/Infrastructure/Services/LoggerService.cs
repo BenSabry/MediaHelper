@@ -1,13 +1,15 @@
 ﻿using System.Collections.Concurrent;
+using System.Text;
 using Application.Infrastructure.Services;
 using Domain.DTO;
 using Domain.Enums;
 using Domain.Interfaces;
+using Shared;
 using Shared.Helpers;
 using Shared.Wrappers;
 
 namespace Infrastructure.Services;
-public sealed class LoggerService : ILoggerService
+internal sealed class LoggerService : ILoggerService
 {
     //TODO: use properate standard logger
     #region Fields
@@ -15,17 +17,17 @@ public sealed class LoggerService : ILoggerService
     private readonly string RootPath;
     private readonly string CurrentFilePath;
 
-    private readonly object LOCK = new();
     private readonly ConcurrentQueue<(DateTime Time, string Value)> Queue = new();
+    private readonly Throttler throttler;
 
-    private readonly bool Enabled;
+    private readonly bool EnableLogAndResume;
     #endregion
 
     #region Constructors
     public LoggerService(ISettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        Enabled = settings.EnableLogAndResume;
+        EnableLogAndResume = settings.EnableLogAndResume;
         RootPath = settings.TempLogPath;
 
         var date = DateTime.Now;
@@ -39,7 +41,7 @@ public sealed class LoggerService : ILoggerService
             + $"{CommonHelper.FormatNumberToLength(date.Second, length)}"
             + $".csv";
 
-        if (Enabled)
+        if (EnableLogAndResume)
         {
             if (!Directory.Exists(RootPath))
                 Directory.CreateDirectory(RootPath);
@@ -50,7 +52,7 @@ public sealed class LoggerService : ILoggerService
             File.CreateText(CurrentFilePath).Close();
         }
 
-        StartSaveTask(settings.LogSaveDelay);
+        throttler = new Throttler(SaveLog, settings.LogSaveDelay);
     }
     #endregion
 
@@ -64,8 +66,11 @@ public sealed class LoggerService : ILoggerService
     #region Behavior-Instance
     public void Log(LogOperation operation, params string[] messages)
     {
-        if (Enabled)
+        if (EnableLogAndResume)
+        {
             Queue.Enqueue((DateTime.Now, $"{operation};{string.Join(LogSeparator, messages)}"));
+            throttler.RegisterAsync();
+        }
     }
     public void Log(LogLevel level, string message, bool appendLine = true)
     {
@@ -119,24 +124,18 @@ public sealed class LoggerService : ILoggerService
         return list.ToArray();
     }
 
-    private void StartSaveTask(int delayInMillisecods)
-    {
-        Task.Run(async () =>
-        {
-            while (Enabled)
-            {
-                await Task.Delay(delayInMillisecods);
-                SaveLog();
-            }
-        });
-    }
     private void SaveLog()
     {
-        lock (LOCK)
-            if (!Queue.IsEmpty)
-                File.AppendAllLines(CurrentFilePath, Queue.Select(i => $"{i.Time}{LogSeparator}{i.Value}"));
-    }
+        var sb = new StringBuilder();
+        while (Queue.TryDequeue(out var i))
+            sb.AppendLine($"{i.Time}{LogSeparator}{i.Value}");
 
+        File.AppendAllText(CurrentFilePath, sb.ToString());
+    }
+    #endregion
+
+    #region Dispose
+    private bool disposed;
     public void Dispose()
     {
         Dispose(true);
@@ -144,10 +143,14 @@ public sealed class LoggerService : ILoggerService
     }
     private void Dispose(bool disposing)
     {
+        if (disposed) return;
         if (disposing)
         {
-            SaveLog();
+            throttler.Dispose();
         }
+
+        SaveLog();
+        disposed = true;
     }
     #endregion
 }

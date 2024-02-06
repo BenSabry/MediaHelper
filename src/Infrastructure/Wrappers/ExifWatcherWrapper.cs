@@ -4,16 +4,13 @@ using Shared.Helpers;
 namespace Infrastructure.Wrappers;
 public sealed class ExifWatcherWrapper
 {
-    #region Fields-Static
+    #region Fields
     public const string ToolName = "ExifWatcher.exe";
-    private static bool Initialized;
 
-    public static string Version { get; private set; } = "0.0.0";
-    #endregion
-
-    #region Fields-Instance
-    private bool IsRunning;
     private readonly string path;
+    private bool IsRunning;
+
+    public string Version { get; private init; } = "0.0.0";
     #endregion
 
     #region Constructors
@@ -22,17 +19,6 @@ public sealed class ExifWatcherWrapper
         ArgumentNullException.ThrowIfNull(settings);
 
         path = Path.Combine(settings.ToolsDirectory, ToolName);
-
-        Initialize(path);
-    }
-    #endregion
-
-    #region Behavior-Static
-    private static void Initialize(string path)
-    {
-        if (Initialized) return;
-        Initialized = true;
-
         if (!File.Exists(path))
             throw new FileNotFoundException($"{ToolName} is missing!");
 
@@ -40,13 +26,14 @@ public sealed class ExifWatcherWrapper
     }
     #endregion
 
-    #region Behavior-Instance
+    #region Behavior
     public void StartWatching()
     {
         if (IsRunning) return;
         IsRunning = true;
 
-        ProcessHelper.RunAsync(path, string.Empty).ConfigureAwait(false);
+        ProcessHelper.RunAsync(path)
+            .ConfigureAwait(false);
     }
     #endregion
 }

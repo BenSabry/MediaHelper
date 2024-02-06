@@ -7,27 +7,15 @@
         <Nullable>enable</Nullable>
         <Trimming>full</Trimming>
         <PublishAot>True</PublishAot>
-        <PackageProjectUrl>https://github.com/BenSabry/MediaOrganizer</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/BenSabry/MediaOrganizer</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/BenSabry/MediaHelper</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/BenSabry/MediaHelper</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <AssemblyVersion>0.7.0</AssemblyVersion>
+        <AssemblyVersion>0.10.0</AssemblyVersion>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <FileVersion>0.7.0</FileVersion>
-        <AssemblyName>MediaOrganizer</AssemblyName>
+        <FileVersion>0.10.0</FileVersion>
+        <AssemblyName>MediaHelper</AssemblyName>
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     </PropertyGroup>
-
-    <ItemGroup>
-        <None Include="..\..\LICENSE">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Include="..\..\README.md">
-            <Pack>True</Pack>
-            <PackagePath>\</PackagePath>
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
@@ -38,10 +26,16 @@
         <None Update="AppSettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Include="..\..\LICENSE">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Include="..\..\README.md">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Update="SonarAnalyzer.CSharp" Version="9.17.0.82934" />
+        <PackageReference Update="SonarAnalyzer.CSharp" Version="9.19.0.84025" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,168 +1,121 @@
-﻿using System.Text;
+﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Jobs;
+using Shared;
 
 
+Benchmarker benchmarker;
+Console.WriteLine("Running...");
 
+benchmarker = new Benchmarker();
+benchmarker.Throttler();
+Console.WriteLine(benchmarker.Count);
 
+//benchmarker = new Benchmarker();
+//benchmarker.ThreadSafeThrottler();
+//Console.WriteLine(benchmarker.Count);
 
+Task.Delay(10).Wait();
 
+var summary = BenchmarkRunner.Run<Benchmarker>();
 
+[MemoryDiagnoser]
+[SimpleJob(RuntimeMoniker.NativeAot80)]
+public class Benchmarker
+{
+    #region Fields
+    private const int Delay = 100;
+    private const int Repeats = 500;
+    private const int RepeatDelay = 1;
+    private const int TasksCount = 1000;
 
+    private int[] Counters;
+    public int Count => Counters.Sum();
+    #endregion
 
+    #region Defaults
+    private bool Initialized;
 
+    public Benchmarker() => Setup();
 
+    [GlobalSetup]
+    public void Setup()
+    {
+        if (Initialized) return;
+        Initialized = true;
 
-//using MediaOrganizer.Helpers;
-//using BenchmarkDotNet.Attributes;
-//using BenchmarkDotNet.Running;
-//using MediaOrganizer;
-//using BenchmarkDotNet.Jobs;
+        Initialize();
+    }
+    #endregion
 
-//#region Manual
-////#region Commands
-////const string ExifDefaultCreationTag = "CreateDate";
-////const char ExifTagsWriteSeparator = ' ';
-////const string ExifDateFormat = "yyyy:MM:dd HH:mm:sszzz";
+    private void Initialize()
+    {
+        Counters = new int[TasksCount];
+    }
 
-////var ExifWriteAllDatesValuePlaceHolder = Guid.NewGuid().ToString();
-////var ExifTargetedDateTimeTags = new[] { ExifDefaultCreationTag, "FileCreateDate", "FileModifyDate" };
-////var ExifWriteAllDatesArgs = new string(string.Join(ExifTagsWriteSeparator,
-////                ExifTargetedDateTimeTags.Select(i => $"\"-{i}={ExifWriteAllDatesValuePlaceHolder}\""))
-////                .ToArray());
+    [Benchmark]
+    public void Throttler()
+    {
+        Initialize();
+        using (var worker = new Throttler<int>(DoSomeWork, Delay))
+            Repeat(worker.RegisterAsync);
+    }
 
-////var Commands = new string[]
-////{
-////    "-ver",
-////    $"-s -AllDates -FileCreateDate -FileModifyDate -FileAccessDate -{ExifDefaultCreationTag}",
-////    $"{ExifWriteAllDatesArgs.Replace(ExifWriteAllDatesValuePlaceHolder, DateTime.Now.ToString(ExifDateFormat))}"
-////};
+    //[Benchmark]
+    //public void ThreadSafeThrottler()
+    //{
+    //    Initialize();
+    //    using (var worker = new ThreadSafeThrottler<int>(DoSomeWork, Delay))
+    //        Repeat(worker.RegisterAsync);
+    //}
 
-////var path = @"C:\Data\SynologyMediaHelperTEST\TEST\IMAGE.jpg";
-////Commands[1] += $" {path}";
-////Commands[2] += $" {path}";
-////#endregion
+    private static void Repeat(Action<int> action)
+    {
+        var tasks = new Task[TasksCount];
+        for (int tIndex = 0; tIndex < TasksCount; tIndex++)
+        {
+            var index = tIndex;
+            tasks[index] = Task.Run(() =>
+            {
+                for (int i = 0; i < Repeats; i++)
+                {
+                    action(index);
+                    Task.Delay(RepeatDelay).Wait();
+                }
+            });
+        }
 
-////var helper = new ExifHelper();
-////var o11 = helper.ExecuteTEST(Commands[0]);
-////var o12 = helper.ExecuteTEST(Commands[1]);
-////var o13 = helper.ExecuteTEST(Commands[2]);
-////helper.Dispose();
+        Task.WaitAll(tasks);
+    }
+    private void DoSomeWork(int index)
+    {
+        Counters[index]++;
+    }
+}
 
-////var wrapper = new ExifWrapper();
-////var o21 = wrapper.Execute(Commands[0]);
-////var o22 = wrapper.Execute(Commands[1]);
-////var o23 = wrapper.Execute(Commands[2]);
-////wrapper.Dispose();
-
-////LogHelper.Warning("\nPress any key to exit.");
-////LogHelper.ReadKey();
-//#endregion
-
-////| Method | Mean | Error | StdDev | Allocated |
-////| -------- | -----------:| ----------:| ----------:| ----------:|
-////| Helper | 5,623.2 ms | 105.57 ms | 112.95 ms | 1186 KB |
-////| Wrapper | 781.7 ms | 11.17 ms | 10.45 ms | 596.89 KB |
-
-
-////new Benchmarker().Helper();
-////new Benchmarker().Wrapper();
-
-//var summary = BenchmarkRunner.Run<Benchmarker>();
-
-//[MemoryDiagnoser]
-//[SimpleJob(RuntimeMoniker.NativeAot80)]
-//public class Benchmarker
+//public class DebouncerThreaded : AbstractBounce
 //{
-//    #region Fields
-//    private int TasksCount = 2;
-//    private int Iterations = 10;
-//    private FileInfo Image = new FileInfo(@"C:\Data\SynologyMediaHelperTEST\TEST\IMAGE.jpg");
-
-//    private static string[] Commands;
-//    private static string[] Images;
-//    #endregion
-
-//    #region Defaults
-//    private bool Initialized;
-//    private object tool;
-
-//    public Benchmarker() => Setup();
-
-//    [GlobalSetup]
-//    public void Setup()
+//    public DebouncerThreaded(Action action, int millisecondsDelay) : base(action, millisecondsDelay) { }
+//    public override void RegisterAsync()
 //    {
-//        if (Initialized) return;
-//        Initialized = true;
-
-//        Initialize();
+//        CS.Cancel();
+//        CS = RegisterDebounce();
 //    }
-//    #endregion
 
-//    private void Initialize()
+//    private CancellationTokenSource RegisterDebounce()
 //    {
-//        #region Commands
-//        const string ExifDefaultCreationTag = "CreateDate";
-//        const char ExifTagsWriteSeparator = ' ';
-//        const string ExifDateFormat = "yyyy:MM:dd HH:mm:sszzz";
-
-//        var ExifWriteAllDatesValuePlaceHolder = Guid.NewGuid().ToString();
-//        var ExifTargetedDateTimeTags = new[] { ExifDefaultCreationTag, "FileCreateDate", "FileModifyDate" };
-//        var ExifWriteAllDatesArgs = new string(string.Join(ExifTagsWriteSeparator,
-//                        ExifTargetedDateTimeTags.Select(i => $"\"-{i}={ExifWriteAllDatesValuePlaceHolder}\""))
-//                        .ToArray());
-
-//        Commands =
-//        [
-//            "-ver",
-//            $"-s -AllDates -FileCreateDate -FileModifyDate -FileAccessDate -{ExifDefaultCreationTag}",
-//            $"{ExifWriteAllDatesArgs.Replace(ExifWriteAllDatesValuePlaceHolder, DateTime.Now.ToString(ExifDateFormat))}"
-//        ];
-//        #endregion
-
-//        #region Data
-//        var dir = Image.Directory;
-//        var tmp = new DirectoryInfo(Path.Combine(dir.FullName, "TEMP"));
-
-//        if (!tmp.Exists) tmp.Create();
-
-//        Images = new string[Iterations];
-//        for (int i = 0; i < Iterations; i++)
+//        var cs = new CancellationTokenSource();
+//        Task.Run(async () =>
 //        {
-//            Images[i] = Path.Combine(tmp.FullName, $"{i}{Image.Extension}");
-//            Image.CopyTo(Images[i], true);
-//        }
-//        #endregion
-//    }
+//            cs.Token.ThrowIfCancellationRequested();
+//            await Task.Delay(delay);
 
-//    [Benchmark]
-//    public void Helper()
-//    {
-//        RunExcution(
-//            (ExifHelper exif, string input) => exif.ExecuteTEST(input),
-//            () => new ExifHelper(true, true), TasksCount, Iterations);
+//            if (!cs.Token.IsCancellationRequested) action();
 
-//        //ExifHelper.CleanUp();
-//    }
+//        }, cs.Token);
 
-//    [Benchmark]
-//    public void Wrapper()
-//    {
-//        RunExcution(
-//            (ExifWrapper exif, string input) => exif.Execute(input),
-//            () => new ExifWrapper(), TasksCount, Iterations);
-
-//        //ExifWrapper.CleanUp();
-//    }
-
-//    private static int GetIteratedIndex(long number, int count) => (int)(number % count);
-//    private static void RunExcution<TArg>(Func<TArg, string, string> execute, Func<TArg> getPerTaskArgument, int tasksCount, int iterations)
-//    {
-//        new int[iterations]
-//            .ParallelForEachTask(tasksCount, (int num, long index, TArg arg) =>
-//            {
-//                execute(arg, Commands[0]);
-//                execute(arg, $"{Commands[1]} \"{Images[index]}\"");
-//                execute(arg, $"{Commands[2]} \"{Images[index]}\"");
-//            },
-//            () => getPerTaskArgument()).Wait();
+//        return cs;
 //    }
 //}
+
+

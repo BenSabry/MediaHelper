@@ -10,13 +10,15 @@ public sealed class Settings : ISettings
 
     #region Properties
     public bool EnableSuperUserMode { get; private init; }
-    public int LogSaveDelay => 60_000;
+    public int LogSaveDelay => 5_000;
 
     public int TasksCount { get; private init; }
     public bool EnableLogAndResume { get; private init; }
     public bool AttemptToFixIncorrectOffsets { get; private init; }
     public bool ClearBackupFilesOnComplete { get; private init; }
     public bool DeleteEmptyDirectoriesOnComplete { get; private init; }
+    public bool AutoFixArabicNumbersInFileName { get; private init; }
+
     public string Target { get; private init; }
     public string[] Sources { get; private init; }
     public string[] Ignores { get; private init; }
@@ -48,10 +50,12 @@ public sealed class Settings : ISettings
         AttemptToFixIncorrectOffsets = Configuration.GetValue<bool>(nameof(AttemptToFixIncorrectOffsets));
         ClearBackupFilesOnComplete = Configuration.GetValue<bool>(nameof(ClearBackupFilesOnComplete));
         DeleteEmptyDirectoriesOnComplete = Configuration.GetValue<bool>(nameof(DeleteEmptyDirectoriesOnComplete));
+        AutoFixArabicNumbersInFileName = Configuration.GetValue<bool>(nameof(AutoFixArabicNumbersInFileName));
 
         Target = Configuration.GetValue<string>(nameof(Target)) ?? string.Empty;
         Sources = GetSectionValues(Configuration, nameof(Sources));
         Ignores = GetSectionValues(Configuration, nameof(Ignores));
+        Ignores = FixUnEscapedChars(Ignores);
     }
     #endregion
 
@@ -66,6 +70,18 @@ public sealed class Settings : ISettings
                 .Select(i => i.Value)
                 .Where(i => !string.IsNullOrWhiteSpace(i))
                 .ToArray() as string[];
+    }
+    private static string[] FixUnEscapedChars(string[] items)
+    {
+        const string c1 = "\\";
+        var c2 = $"{c1}{c1}";
+        var comp = StringComparison.Ordinal;
+
+        for (var i = 0; i < items.Length; i++)
+            while (items[i].Contains(c2, comp))
+                items[i] = items[i].Replace(c2, c1, comp);
+
+        return items;
     }
     #endregion
 }

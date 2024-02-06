@@ -7,21 +7,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\modules\ExifToolWrapper\ExifToolWrapper.csproj" />
     <ProjectReference Include="..\Application\Application.csproj" />
-    <ProjectReference Include="..\Shared\Shared.csproj" />
+    <ProjectReference Include="..\utils\Shared\Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Tools\exiftool.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Tools\ExifWatcher.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="SonarAnalyzer.CSharp" Version="9.17.0.82934" />
+    <PackageReference Update="SonarAnalyzer.CSharp" Version="9.19.0.84025" />
   </ItemGroup>
 
 </Project>

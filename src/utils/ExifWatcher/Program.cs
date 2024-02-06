@@ -2,13 +2,13 @@
 using System.Reflection;
 
 #region Fields
-const string MainProcessName = "MediaOrganizer";
+const string MainProcessName = "MediaHelper";
 const string ExifProcessName = "exiftool";
 
 const int GenericDelayTime = 1_000;
 const int GenericRetryCount = 10;
 
-const string ExifCloseCommand = "-stay_open\nFalse";
+const string ExifCloseCommand = "-stay_open\nfalse";
 const string ExifArgsExecuteTag = "-execute";
 #endregion
 
@@ -17,12 +17,12 @@ HandleArgs(args);
 ChangeTerminalColor();
 
 WaitUntilProcessesExits();
-var dirs = RequestExifToCloseAngGetTempDirectories();
+RequestExifToClose();
 
 WaitingExifToClose();
 ForceKillAnyExifRunning();
 
-CleanTempFiles(dirs);
+CleanTempFiles();
 #endregion
 
 #region Helpers
@@ -47,28 +47,20 @@ void WaitUntilProcessesExits()
     while (Process.GetProcessesByName(MainProcessName).Any(i => !i.HasExited))
         Task.Delay(GenericDelayTime).Wait();
 }
-string[] RequestExifToCloseAngGetTempDirectories()
+void RequestExifToClose()
 {
     Console.WriteLine("Requesting all Exif tools to close.");
 
-    var processes = Process.GetProcessesByName(ExifProcessName);
-    var pathes = processes.Select(i =>
-        new FileInfo(i.MainModule.FileName)?.Directory?.Parent?.FullName)
-        .Where(i => !string.IsNullOrWhiteSpace(i)).Distinct()
-        .Select(i => Path.Combine(i, ".temp")).ToArray();
-
-    var commands = new[] { ExifCloseCommand, ExifArgsExecuteTag };
-    Parallel.ForEach(pathes, path =>
+    Parallel.ForEach(Process.GetProcessesByName(ExifProcessName), process =>
     {
-        var dir = new DirectoryInfo(Path.Combine(path!, ".exif"));
-        if (dir.Exists)
-            Parallel.ForEach(dir.GetFiles("*.txt"), file =>
-            {
-                RetryIfFails(() => { File.AppendAllLines(file.FullName, commands); });
-            });
+        try
+        {
+            process.StandardInput.WriteLine(ExifCloseCommand);
+            process.StandardInput.WriteLine(ExifArgsExecuteTag);
+            process.StandardInput.Flush();
+        }
+        catch (Exception) { }
     });
-
-    return pathes;
 }
 void WaitingExifToClose()
 {
@@ -86,29 +78,33 @@ void ForceKillAnyExifRunning()
         Process.GetProcessesByName(ExifProcessName),
         p => RetryIfFails(() => p.Kill()));
 }
-void CleanTempFiles(string[] directories)
+void CleanTempFiles()
 {
     Console.WriteLine("Cleaning any temp files left.");
 
-    Parallel.ForEach(directories, dir =>
+    var dir = new DirectoryInfo(@".temp");
+    if (!dir.Exists) return;
+
+    var exif = new DirectoryInfo(Path.Combine(dir.FullName, ".exif"));
+    var zip = new DirectoryInfo(Path.Combine(dir.FullName, ".zip"));
+    var logs = new DirectoryInfo(Path.Combine(dir.FullName, "logs"));
+
+    RetryIfFails(() => { if (exif.Exists) exif.Delete(true); });
+    RetryIfFails(() => { if (zip.Exists) zip.Delete(true); });
+    RetryIfFails(() =>
     {
-        if (!Directory.Exists(dir)) return;
+        if (!logs.Exists) return;
 
-        var exif = new DirectoryInfo(Path.Combine(dir, ".exif"));
-        var zip = new DirectoryInfo(Path.Combine(dir, ".zip"));
-        var logs = new DirectoryInfo(Path.Combine(dir, "logs"));
-
-        RetryIfFails(() => { if (exif.Exists) exif.Delete(true); });
-        RetryIfFails(() => { if (zip.Exists) zip.Delete(true); });
-        RetryIfFails(() =>
+        Parallel.ForEach(logs.EnumerateFiles("*.csv"), file =>
         {
-            Parallel.ForEach(logs.EnumerateFiles("*.csv"), file =>
-            {
-                if (string.IsNullOrEmpty(File.ReadAllText(file.FullName)))
-                    file.Delete();
-            });
+            if (string.IsNullOrEmpty(File.ReadAllText(file.FullName)))
+                file.Delete();
         });
+
+        if (!logs.EnumerateFiles().Any()) logs.Delete();
     });
+
+    RetryIfFails(() => { if (dir.Exists && !dir.EnumerateDirectories().Any()) dir.Delete(); });
 }
 void RetryIfFails(Action action, int retryCount = GenericRetryCount, int delayOfRetry = GenericDelayTime)
 {

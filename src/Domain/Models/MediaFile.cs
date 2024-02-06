@@ -25,18 +25,19 @@ public sealed class MediaFile : AbstractMediaFile
     #region Behavior
     public override FileInfo GetFile() => FileEntry;
     public override FileInfo GetJsonFile() => JsonEntry;
+    #endregion
 
-    public override void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
+    #region Dispose
+    private bool disposed;
     protected override void Dispose(bool disposing)
     {
+        if (!disposed) return;
         if (disposing)
         {
 
         }
+
+        disposed = true;
     }
     #endregion
 }

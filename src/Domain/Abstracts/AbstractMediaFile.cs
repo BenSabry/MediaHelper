@@ -10,9 +10,16 @@ public abstract class AbstractMediaFile : IMediaFile
     #region Behavior
     public abstract FileInfo GetFile();
     public abstract FileInfo GetJsonFile();
-    public abstract void Dispose();
-    protected abstract void Dispose(bool disposing);
-
+    
     protected static string AddJsonExtension(string path) => $"{path}.json";
+    #endregion
+
+    #region Dispose
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    protected abstract void Dispose(bool disposing);
     #endregion
 }

@@ -6,6 +6,7 @@ using Domain.Interfaces;
 using Domain.Models;
 using Shared.Extensions;
 using Shared.Helpers;
+using System.Data;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
@@ -13,37 +14,41 @@ using System.Reflection;
 namespace Application.Services;
 public sealed class CoreService : IDisposable
 {
-    #region Fields-Static
+    #region Fields
     private readonly ISettings settings;
     private readonly IServiceProvider serviceProvider;
+    private readonly IExifCoreService exifService;
     private readonly ILoggerService loggerService;
-    private readonly IExifService exifService;
 
     private readonly Statistics statistics = new Statistics();
     private readonly Process process = Process.GetCurrentProcess();
     private readonly Dictionary<string, string> versions;
 
+    private readonly int TasksCount;
     private DateTime startDateTime;
+    private bool IsStarted;
     #endregion
 
     #region Constructors
-    public CoreService(ISettings settings, IServiceProvider serviceProvider, ILoggerService loggerService, IExifService exifService)
+    public CoreService(ISettings settings, IServiceProvider serviceProvider, IExifCoreService exifService, ILoggerService loggerService)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(loggerService);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
         ArgumentNullException.ThrowIfNull(exifService);
+        ArgumentNullException.ThrowIfNull(loggerService);
 
         this.settings = settings;
         this.serviceProvider = serviceProvider;
-        this.loggerService = loggerService;
         this.exifService = exifService;
+        this.loggerService = loggerService;
 
+        TasksCount = GetValidTasksCount(settings);
         versions = new Dictionary<string, string>
         {
-            { "MediaOrganizer", TrimVersion(Assembly.GetEntryAssembly()!.GetName()!.Version!.ToString()) },
+            { "MediaHelper", TrimVersion(Assembly.GetEntryAssembly()!.GetName()!.Version!.ToString()) },
             { ".NET", TrimVersion(Environment.Version.ToString()) },
-            { "Exif", TrimVersion(exifService.ExifToolVersion) },
-            { "ExifWatcher", TrimVersion(exifService.ExifWatcherVersion) },
+            { "Exif", TrimVersion(exifService.ToolVersion) },
+            { "ExifWatcher", TrimVersion(exifService.WatcherVersion) },
         };
     }
     #endregion
@@ -56,33 +61,6 @@ public sealed class CoreService : IDisposable
     #endregion
 
     #region Behavior-Static
-    private static void ProcessFile(IMediaFile item, IExifService exif, ILoggerService logger, ISettings settings, Statistics statistics)
-    {
-        (FileInfo file, FileInfo? json, string src) = (item.GetFile(), item.GetJsonFile(), item.OriginalSource);
-
-        var list = new List<DateTime[]>()
-        {
-            DateHelper.ExtractAllPossibleDateTimes(file.Name.ReplaceArabicNumbers()),
-            exif.ReadAllDates(file.FullName),
-        };
-
-        if (json.Exists) list.Add(exif.ReadAllDatesFromJson(json));
-
-        var dates = list
-            .SelectMany()
-            .Distinct()
-            .Where(DateHelper.IsValidDateTime)
-            .ToArray();
-
-        if (dates.Length != default)
-        {
-            var date = dates.Min();
-
-            if (TryCopyFileToDirectoryBasedOnDate(ref file, logger, settings, statistics, src, date))
-                UpdateMediaTargetedDateTime(file, exif, logger, statistics, date);
-        }
-        else LogNoDate(logger, statistics, src);
-    }
     private static int GetValidTasksCount(ISettings settings)
     {
         const int DefaultTasksCount = 1;
@@ -92,81 +70,18 @@ public sealed class CoreService : IDisposable
         else if (settings.TasksCount > Environment.ProcessorCount / 2)
             return Environment.ProcessorCount / 2;
 
-        return DefaultTasksCount;
+        return settings.TasksCount;
     }
 
-    private static IEnumerable<IMediaFile> GetMediaFiles(IExifService exifService, ISettings settings)
+    private static bool ThisFileNeedsToBeProcessed(IMediaFile file, ref Dictionary<string, LogRecord> records, ref string[] ignores, Statistics statistics)
     {
-        foreach (var source in settings.Sources)
-            if (!string.IsNullOrWhiteSpace(source))
-            {
-                if (File.Exists(source))
-                    foreach (var file in GetMediaFiles(new FileInfo(source), settings, exifService))
-                        yield return file;
+        var skip = Array.Exists(ignores, i => file.OriginalSource.Contains(i, StringComparison.OrdinalIgnoreCase))
+            || (records.TryGetValue(file.OriginalSource.ToLower(), out var value) && File.Exists(value.Destination));
 
-                else if (Directory.Exists(source))
-                {
-                    var sources = settings.Sources
-                        .Where(i => !i.Equals(source, StringComparison.Ordinal))
-                        .ToArray();
-
-                    foreach (var item in GetMediaFiles(new DirectoryInfo(source), sources, settings, exifService))
-                        yield return item;
-                }
-            }
-    }
-    private static IEnumerable<IMediaFile> GetMediaFiles(FileInfo file, ISettings settings, IExifService exif)
-    {
-        if (IsSupportedArchiveFile(file))
-            foreach (var item in GetMediaFilesOfArchive(file, settings, exif))
-                yield return item;
-
-        else if (IsSupportedMediaFile(file, exif))
-            yield return new MediaFile(file);
-    }
-    private static IEnumerable<IMediaFile> GetMediaFiles(DirectoryInfo directory, string[] sources, ISettings settings, IExifService exif)
-    {
-        if (!sources.Contains(directory.FullName))
-        {
-            foreach (var file in directory.EnumerateFiles())
-                foreach (var mediaFile in GetMediaFiles(file, settings, exif))
-                    yield return mediaFile;
-
-            foreach (var dir in directory.EnumerateDirectories())
-                foreach (var file in GetMediaFiles(dir, sources, settings, exif))
-                    yield return file;
-        }
-    }
-    private static IEnumerable<IMediaFile> GetMediaFilesOfArchive(FileInfo file, ISettings settings, IExifService exif)
-    {
-        using (var archive = ZipFile.OpenRead(file.FullName))
-            return archive.Entries
-                .Where(i => IsSupportedMediaFile(i, exif))
-                .Select(i => new ArchivedMediaFile(i, file, settings));
-    }
-    private static bool ThisFileNeedsToBeProcessed(IMediaFile file, ref LogRecord[] records, ref string[] ignores, Statistics statistics)
-    {
-        var skip = !Array.Exists(ignores, i => file.OriginalSource.Contains(i, StringComparison.OrdinalIgnoreCase))
-            && !Array.Exists(records, i => i.Source.Equals(file.OriginalSource, StringComparison.OrdinalIgnoreCase)
-                && File.Exists(i.Destination));
-
-        if (!skip)
+        if (skip)
             Interlocked.Increment(ref statistics.Skipped);
 
-        return skip;
-    }
-
-    private static bool IsSupportedMediaFile(FileInfo file, IExifService exif)
-    {
-        return !string.IsNullOrWhiteSpace(file.Name)
-            && MediaHelper.IsSupportedMediaFile(file)
-            && exif.IsSupportedMediaFile(file);
-    }
-    private static bool IsSupportedMediaFile(ZipArchiveEntry file, IExifService exif)
-    {
-        return !string.IsNullOrWhiteSpace(file.FullName)
-            && MediaHelper.IsSupportedMediaFile(file.FullName)
-            && exif.IsSupportedMediaFile(file.FullName);
+        return !skip;
     }
     private static bool IsSupportedArchiveFile(FileInfo file)
     {
@@ -207,11 +122,10 @@ public sealed class CoreService : IDisposable
         return false;
     }
 
-    private static void UpdateMediaTargetedDateTime(FileInfo file, IExifService exif, ILoggerService logger, Statistics statistics, DateTime dateTime)
+    private static void UpdateMedia(FileInfo file, IExifService exif, ILoggerService logger, Statistics statistics, Dictionary<string, string> tags)
     {
-        var valid = exif.TryUpdateMediaTargetedDateTime(file.FullName, dateTime);
-
-        if (valid) LogUpdate(logger, statistics, file.FullName);
+        if (exif.TryWriteMetadata(file.FullName, tags))
+            LogUpdate(logger, statistics, file.FullName);
         else LogFail(logger, statistics, file.FullName);
     }
     private static string GetNewDestinationPath(FileInfo file, ISettings settings, DateTime dateTime)
@@ -222,7 +136,9 @@ public sealed class CoreService : IDisposable
             file.Name);
     }
 
-    private static void CleanUp(IExifService exifService, ILoggerService loggerService, ISettings settings)
+    //TODO: delete this operation because it's already copying the file not working on same file so it's not needed anymore
+    //TODO: move it ExifToolWrapper
+    private static void CleanUp(IExifCoreService exifService, ILoggerService loggerService, ISettings settings)
     {
         loggerService.LogInformation("\nCleaning Up...");
 
@@ -284,6 +200,58 @@ public sealed class CoreService : IDisposable
     #region Behavior-Instance
     public async Task RunAsync()
     {
+        #region TESTING
+        //var exif = GetService<IExifService>();
+        //var exifCore = GetService<IExifCoreService>();
+
+        //var path = @"C:\Dev\Repos\IMG_20180905_141132.jpg";
+        //var date = exifCore.DateTimeFormat(DateTime.Now.AddYears(-10));
+
+        //var tags = new Dictionary<string, string>()
+        //{
+        //    { "FileCreateDate", date },
+        //    { "DateTimeOriginal", date },
+        //    { "CreateDate", date },
+        //    { "SubSecCreateDate", date },
+        //    { "DateTimeDigitized", date }
+        //};
+
+        //var temp = $"{path}.copy";
+        //File.Copy(path, temp, true);
+
+        //var before = exif.ReadMetadata(temp);
+        //var result = exif.TryUpdate(temp, tags);
+        //var after = exif.ReadMetadata(temp);
+
+        //File.Delete(temp);
+
+        //var diff = new List<(string Key, string Before, string After)>();
+
+        //foreach (var tag in after)
+        //{
+        //    if (!before.TryGetValue(tag.Key, out string? value))
+        //        diff.Add((tag.Key, string.Empty, tag.Value));
+
+        //    else if (!tag.Value.Equals(value, StringComparison.Ordinal))
+        //        diff.Add((tag.Key, value, tag.Value));
+        //}
+        //foreach (var tag in before)
+        //{
+        //    if (!after.TryGetValue(tag.Key, out string? value))
+        //        diff.Add((tag.Key, tag.Value, string.Empty));
+
+        //    else if (!tag.Value.Equals(value, StringComparison.Ordinal))
+        //        diff.Add((tag.Key, tag.Value, value));
+        //}
+
+        ////var diff = after
+        ////    .Where(a => !a.Value.Equals(before.First(b => a.Key.Equals(b.Key)).Value))
+        ////    .ToList();
+
+        //return;
+        #endregion
+
+        #region ActualRun
         ShowWelcomeMessage();
         if (!SourcesAreValidToUse())
             return;
@@ -292,14 +260,80 @@ public sealed class CoreService : IDisposable
         InitializeTimer();
 
         const int DelayInMilliseconds = 100;
-        await SkipProcessedFiles(GetMediaFiles(exifService, settings))
-            .Take(10)
+        await SkipProcessedFiles(GetMediaFiles())
             .ParallelForEachAsync(
-                GetValidTasksCount(settings),
+                TasksCount,
                 (IMediaFile file, long i, (IExifService exif, ILoggerService logger) arg)
-                    => ProcessFile(file, arg.exif, arg.logger, settings, statistics),
+                    => ProcessFile(file, arg.exif, arg.logger),
                 () => (GetService<IExifService>(), GetService<ILoggerService>()),
-                LogProgress, DelayInMilliseconds);
+                LogProgress,
+                DelayInMilliseconds);
+        #endregion
+
+        #region TESTING
+        return;
+        //var dict = new ConcurrentDictionary<string, int>();
+
+        //await SkipProcessedFiles(GetMediaFiles())
+        //    .ParallelForEachAsync(
+        //        TasksCount,
+        //        (IMediaFile media, long i, (IExifService exif, ILoggerService logger) arg)
+        //            =>
+        //        {
+        //            if (media.GetJsonFile() is { Exists: true } json)
+        //            {
+        //                var tags = arg.exif.ReadMetadata(json.FullName);
+        //                foreach (var tag in tags)
+        //                    if (dict.TryAdd(tag.Key, default))
+        //                    {
+        //                        var meta = JsonSerializer.Serialize(new Dictionary<string, string>[]
+        //                            { tags, arg.exif.ReadMetadata(media.GetFile().FullName) });
+
+        //                        arg.logger.Log(LogOperation.Copy, tag.Key, tag.Value, meta);
+        //                        arg.logger.LogSuccess(tag.Key);
+        //                    }
+
+        //                    else dict[tag.Key]++;
+        //            }
+
+
+        //            //var fMeta = arg.exif.ReadMetadata(file.FullName);
+        //            //if (json.Exists)
+        //            //{
+        //            //    var jMeta = arg.exif.ReadMetadata(json.FullName);
+        //            //    foreach (var tag in jMeta)
+        //            //        if (dict.TryAdd(tag.Key, default))
+        //            //        {
+        //            //            arg.logger.Log(LogOperation.Copy, tag.Key);
+        //            //            arg.logger.LogSuccess(tag.Key);
+        //            //        }
+
+        //            //        else dict[tag.Key]++;
+
+
+
+        //            //    //takeoutService.TryDeserialize(File.ReadAllText(json.FullName), out var metadata);
+
+        //            //    //Console.WriteLine(string.Join("\n", jMeta.Select(i => $"{i.Key}:{i.Value}")));
+
+        //            //    //if (metadata is { Value.creationTime.timestamp.Length: > 0 }
+        //            //    //    and { Value.creationTimestampMs.Length: > 0 })
+        //            //    //{
+        //            //    //}
+
+        //            //    //if (metadata.HasValue
+        //            //    //    && !string.IsNullOrWhiteSpace(metadata.Value.creationTimestampMs)
+        //            //    //    && !string.IsNullOrWhiteSpace(metadata.Value.creationTime.timestamp))
+        //            //    //{
+        //            //    //}
+
+        //            //    //if (DateHelper.TryParseDateTimeFromNumber(metadata.Value.creationTimestampMs, out var date))
+        //            //    //    Console.WriteLine(date);
+        //            //}
+
+        //        }, () => (GetService<IExifService>(), GetService<ILoggerService>()),
+        //        null, DelayInMilliseconds);
+        #endregion
     }
 
     private bool SourcesAreValidToUse()
@@ -329,6 +363,103 @@ public sealed class CoreService : IDisposable
     private void InitializeTimer()
     {
         startDateTime = DateTime.Now;
+        IsStarted = true;
+    }
+
+    private void ProcessFile(IMediaFile item, IExifService exif, ILoggerService logger)
+    {
+        //TODO: extract or copy files with temp Exif compatable name while processing then rename
+        (var file, var json, var src) = (item.GetFile(), item.GetJsonFile(), item.OriginalSource);
+
+        //TODO: remove empty tags
+        var original = exif.ReadMetadata(file.FullName);
+        var temp = new Dictionary<string, string>(original);
+
+        if (json.Exists)
+        {
+            var jsonMeta = exif.ReadJsonMetadata(json.FullName);
+            foreach (var tag in jsonMeta)
+                if (!temp.TryAdd(tag.Key, tag.Value))
+                    temp[tag.Key] = tag.Value;
+        }
+
+        if (!exif.TryUpdateCreationDateTagsWithMinAcceptableValue(ref temp,
+            DateHelper.ExtractPossibleDateTimes(file.Name.ReplaceArabicNumbers()), out var date))
+        {
+            LogNoDate(logger, statistics, src);
+            return;
+        }
+
+#if DEBUG
+        if (date.Year < 2000)
+        {
+
+        }
+#endif
+
+        var updates = new Dictionary<string, string>(temp
+            .Where(a => !original.TryGetValue(a.Key, out var value)
+            || !a.Value.Equals(value, StringComparison.Ordinal)));
+
+        if (TryCopyFileToDirectoryBasedOnDate(ref file, logger, settings, statistics, src, date))
+            UpdateMedia(file, exif, logger, statistics, updates);
+
+#if DEBUG
+        else
+        {
+
+        }
+#endif
+    }
+
+    private IEnumerable<IMediaFile> GetMediaFiles()
+    {
+        foreach (var source in settings.Sources)
+            if (!string.IsNullOrWhiteSpace(source))
+            {
+                if (File.Exists(source))
+                    foreach (var file in GetMediaFiles(new FileInfo(source)))
+                        yield return file;
+
+                else if (Directory.Exists(source))
+                {
+                    var sources = settings.Sources
+                        .Where(i => !i.Equals(source, StringComparison.Ordinal))
+                        .ToArray();
+
+                    foreach (var item in GetMediaFiles(new DirectoryInfo(source), sources))
+                        yield return item;
+                }
+            }
+    }
+    private IEnumerable<IMediaFile> GetMediaFiles(FileInfo file)
+    {
+        if (IsSupportedArchiveFile(file))
+            foreach (var item in GetMediaFilesOfArchive(file, settings))
+                yield return item;
+
+        else if (IsSupportedMediaFile(file))
+            yield return new MediaFile(file);
+    }
+    private IEnumerable<IMediaFile> GetMediaFiles(DirectoryInfo directory, string[] sources)
+    {
+        if (!sources.Contains(directory.FullName))
+        {
+            foreach (var file in directory.EnumerateFiles())
+                foreach (var mediaFile in GetMediaFiles(file))
+                    yield return mediaFile;
+
+            foreach (var dir in directory.EnumerateDirectories())
+                foreach (var file in GetMediaFiles(dir, sources))
+                    yield return file;
+        }
+    }
+    private IEnumerable<IMediaFile> GetMediaFilesOfArchive(FileInfo file, ISettings settings)
+    {
+        using (var archive = ZipFile.OpenRead(file.FullName))
+            return archive.Entries
+                .Where(i => IsSupportedMediaFile(i))
+                .Select(i => new ArchivedMediaFile(i, file, settings));
     }
     private IEnumerable<IMediaFile> SkipProcessedFiles(IEnumerable<IMediaFile> files)
     {
@@ -337,22 +468,33 @@ public sealed class CoreService : IDisposable
         var operationsToSkip = new LogOperation[] { LogOperation.Copy, LogOperation.Duplicate };
         var ignores = settings.Ignores;
 
-        var records = Array.Empty<LogRecord>();
+        Dictionary<string, LogRecord> records;
+        if (settings.EnableLogAndResume)
+            try
+            {
+                records = new Dictionary<string, LogRecord>(loggerService.ReadAllLogs()
+                    .Where(i => operationsToSkip.Contains(i.Operation))
+                    .DistinctBy(i => i.Source)
+                    .Select(i => new KeyValuePair<string, LogRecord>(i.Source.ToLower(), i)));
 
-        try
-        {
-            records = settings.EnableLogAndResume
-                ? loggerService.ReadAllLogs()
-                .Where(i => operationsToSkip.Contains(i.Operation))
-                .ToArray() : [];
-        }
-        catch
-        {
-            loggerService.LogError("Incompatable log files, Please clean log directory and restart.");
-            return Array.Empty<IMediaFile>();
-        }
+                return files.Where(file => ThisFileNeedsToBeProcessed(file, ref records, ref ignores, statistics));
+            }
+            catch { loggerService.LogError("Incompatable log files, Please clean log directory and restart."); }
 
-        return files.Where(file => ThisFileNeedsToBeProcessed(file, ref records, ref ignores, statistics));
+        return Array.Empty<IMediaFile>();
+    }
+
+    private bool IsSupportedMediaFile(FileInfo file)
+    {
+        return !string.IsNullOrWhiteSpace(file.Name)
+            && MediaHelper.IsSupportedMediaFile(file)
+            && exifService.IsSupportedMediaFile(file);
+    }
+    private bool IsSupportedMediaFile(ZipArchiveEntry file)
+    {
+        return !string.IsNullOrWhiteSpace(file.FullName)
+            && MediaHelper.IsSupportedMediaFile(file.FullName)
+            && exifService.IsSupportedMediaFile(file.FullName);
     }
 
     private void LogProgress(long index, long total)
@@ -370,7 +512,7 @@ public sealed class CoreService : IDisposable
 
         var message = $"Elapsed time: {CommonHelper.FormatNumberToLength(t.Hours, 2)}:{CommonHelper.FormatNumberToLength(t.Minutes, 2)}:{CommonHelper.FormatNumberToLength(t.Seconds, 2)}\n"
             + $"Remaining time: {CommonHelper.FormatNumberToLength(r.Hours, 2)}:{CommonHelper.FormatNumberToLength(r.Minutes, 2)}:{CommonHelper.FormatNumberToLength(r.Seconds, 2)}\n"
-            + $"Tasks Running: {settings.TasksCount}   RAM: {MegaBytesOfRAM}MB\n\n"
+            + $"Tasks Running: {TasksCount}   RAM: {MegaBytesOfRAM}MB\n\n"
 
             + $"Current: {index}/{total}\nCopied: {statistics.Copies}\nUpdated: {statistics.Updates}\nSkipped: {statistics.Skipped}\nFailed: {statistics.Fails}\nDuplicates: {statistics.Duplicates}\n\n"
             + $"Processing Speed:\n"
@@ -387,7 +529,7 @@ public sealed class CoreService : IDisposable
     }
     private void ShowWelcomeMessage()
     {
-        loggerService.LogCritical($"https://github.com/BenSabry/MediaOrganizer");
+        loggerService.LogCritical($"https://github.com/BenSabry/MediaHelper");
 
         foreach (var item in versions)
         {
@@ -406,6 +548,10 @@ public sealed class CoreService : IDisposable
     {
         return (T)serviceProvider.GetService(typeof(T));
     }
+    #endregion
+
+    #region Dispose
+    private bool disposed;
     public void Dispose()
     {
         Dispose(true);
@@ -413,17 +559,21 @@ public sealed class CoreService : IDisposable
     }
     private void Dispose(bool disposing)
     {
+        if (disposed) return;
         if (disposing)
         {
-            CleanUp(exifService, loggerService, settings);
-
-            exifService.Dispose();
-            loggerService.Dispose();
             process.Dispose();
         }
+
+        if (IsStarted)
+            CleanUp(exifService, loggerService, settings);
+
+        loggerService.Dispose();
+        disposed = true;
     }
     #endregion
 
+    #region Nested
     private sealed class Statistics
     {
         public int Copies;
@@ -432,4 +582,5 @@ public sealed class CoreService : IDisposable
         public int Fails;
         public int Duplicates;
     }
+    #endregion
 }
