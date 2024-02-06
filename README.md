@@ -1,5 +1,5 @@
-# Media Organizer
-<b>*Media Organizer*</b> is a tool engineered to assist in arranging your media files into the <b>*/Library/Year/Month/file*</b> structure, based on their creation date. It also aids in resolving any problems related to media file organization <b>*[Issues like these](#Fixable-Issues)*</b>.
+# Media Helper
+<b>*Media Helper*</b> is a tool engineered to assist in arranging your media files into the <b>*/Library/Year/Month/file*</b> structure, based on their creation date. It also aids in resolving any problems related to media file organization <b>*[Issues like these](#Fixable-Issues)*</b>.
 
 # Downloads
 <b>*Latest release*</b> [v0.10.0-beta](https://github.com/BenSabry/MediaHelper/releases/tag/v0.10.0-beta)<br />
