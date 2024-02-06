@@ -1,0 +1,3 @@
+[submodule "modules/ExifToolWrapper"]
+	path = modules/ExifToolWrapper
+	url = https://github.com/BenSabry/ExifToolWrapper
