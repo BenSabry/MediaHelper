@@ -50,34 +50,37 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 <b>*ExifTool*</b>: is a customizable set of Perl modules plus a full-featured command-line application for reading and writing meta information in a wide variety of files.<br />
 
 # AppSettings
+```JSON
+{
+    "TasksCount": 2,
+    "EnableLogAndResume": true,
+    "AttemptToFixMediaIncorrectOffsets": true,
+    "ClearBackupFilesOnComplete": true,
+    "DeleteEmptyDirectoriesOnComplete": true,
+    "AutoFixArabicNumbersInFileName": true,
+    "Target": "\\\\SynologyNAS\\home\\Photos\\PhotoLibrary",
+    "Sources": [
+        "\\\\SynologyNAS\\home\\Google-Takeout.zip",
+        "\\\\SynologyNAS\\home\\Photos\\MobileBackup",
+        "D:\\Data\\Media\\Photos\\Personal\\Family",
+        "\\\\SynologyNAS\\home\\GraduationPhoto.jpg",
+        "\\\\SynologyNAS\\home\\GraduationVideo.mp4"
+    ],
+    "Ignores": [
+        "PersonalVideos",
+        ".avi",
+        ".m4a"
+    ]
+}
+```
+
+# AppSettings Explanation
 <b>*TasksCount*</b>: (number) of <b>*Tasks/Threads*</b> to work simultaneously.<br />
 <b>*EnableLogAndResume*</b>: (flag) to ensure continuity and avoid repetition, actions are recorded in the log.txt files. This allows for resumption from the exact point where you last left off, rather than starting anew.<br />
 <b>*AttemptToFixMediaIncorrectOffsets*</b>: (flag) to fix file info (like duplications/incorrect offsets etc.)<br />
 <b>*ClearBackupFilesOnComplete*</b>: (flag) Clear temp files on complete.<br />
 <b>*DeleteEmptyDirectoriesOnComplete*</b>: (flag) Delete empty directories on complete.<br />
-<b>*AutoFixArabicNumbersInFileName*</b>: (flag) Fix by replacing Arabic numbers with English numbers.
+<b>*AutoFixArabicNumbersInFileName*</b>: (flag) Fix by replacing Arabic numbers with English numbers.<br />
 <b>*Target*</b>: (text) target directory path where all files will be transferred post-processing..<br />
 <b>*Sources*</b>: (array) paths of libraries or files which will be scanned.<br />
 <b>*Ignores*</b>: (array) ignore keywords. The program will ignore files that contain a specific keyword in their name or path. You can add folder names, file extensions, or parts of file names to the list of ignores list.<br />
-
-# AppSettings Example
-{<br />
-&nbsp;&nbsp;"TasksCount": 2,<br />
-&nbsp;&nbsp;"EnableLogAndResume": true,<br />
-&nbsp;&nbsp;"AttemptToFixMediaIncorrectOffsets": true,<br />
-&nbsp;&nbsp;"ClearBackupFilesOnComplete": true,<br />
-&nbsp;&nbsp;"DeleteEmptyDirectoriesOnComplete": true,<br />
-&nbsp;&nbsp;"AutoFixArabicNumbersInFileName": true,<br />
-&nbsp;&nbsp;"Target": "\\\\SynologyNAS\\home\\Photos\\PhotoLibrary",<br />
-&nbsp;&nbsp;"Sources": [<br />
-&nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\Google-Takeout.zip",<br />
-&nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\Photos\\MobileBackup",<br />
-&nbsp;&nbsp;&nbsp;&nbsp;"D:\\Data\\Media\\Photos\\Personal\\Family",<br />
-&nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\GraduationPhoto.jpg",<br />
-&nbsp;&nbsp;&nbsp;&nbsp;"\\\\SynologyNAS\\home\\GraduationVideo.mp4",<br />
-&nbsp;&nbsp;],<br />
-&nbsp;&nbsp;"Ignores": [<br />
-&nbsp;&nbsp;&nbsp;&nbsp;".avi",<br />
-&nbsp;&nbsp;&nbsp;&nbsp;"PersonalVideos",<br />
-&nbsp;&nbsp;],<br />
-}<br />
