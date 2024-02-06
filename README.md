@@ -72,13 +72,7 @@ Example of working AppSettings.json.
 
 # Tech/Tools used
 <b>*[.NET](https://dotnet.microsoft.com/)*</b>: is the free, open-source, cross-platform framework for building modern apps and powerful cloud services.<br />
-<b>*[ExifTool](https://exiftool.org/)*</b>: is a customizable set of Perl modules plus a full-featured
-command-line application for reading and writing meta information in a wide
-variety of files, including the maker note information of many digital
-cameras by various manufacturers such as Canon, Casio, DJI, FLIR, FujiFilm,
-GE, HP, JVC/Victor, Kodak, Leaf, Minolta/Konica-Minolta, Nikon, Nintendo,
-Olympus/Epson, Panasonic/Leica, Pentax/Asahi, Phase One, Reconyx, Ricoh,
-Samsung, Sanyo, Sigma/Foveon and Sony.<br />
+<b>*[ExifToolWrapper](https://github.com/BenSabry/ExifToolWrapper)*</b>: is a C# library that provides various helper methods and features using ExifTool.<br />
 
 # AppSettings Explanation
 <b>*TasksCount*</b>: (number) of <b>*Tasks/Threads*</b> to work simultaneously.<br />
