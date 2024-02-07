@@ -1,6 +1,9 @@
 # Media Helper
 <b>*Media Helper*</b> is a tool engineered to organize your media files into the ***/Library/Year/Month/file*** structure, using their creation date as a guide. It's also useful for retrieving any missing metadata from JSON files (for example, Google Takeout), and correcting metadata issues such as duplications or incorrect offsets. It also aids in resolving any <b>*[Issues like these](#Fixable-Issues)*</b>.
 
+![Screenshot of MediaHelper running.](https://github.com/BenSabry/MediaHelper/blob/main/.github/assets/SS_v0.10.0.png?raw=true)
+*Screenshot of MediaHelper running.
+
 # Downloads
 <b>*Latest release*</b> [v0.10.0-beta](https://github.com/BenSabry/MediaHelper/releases/tag/v0.10.0-beta)<br />
 <b>*All releases*</b> [releases](https://github.com/BenSabry/MediaHelper/releases)
