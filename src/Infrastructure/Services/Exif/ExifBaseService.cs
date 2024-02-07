@@ -3,7 +3,6 @@ using Domain.Interfaces;
 using Infrastructure.Wrappers;
 using Shared.Extensions;
 using Shared.Helpers;
-using System.Text;
 using Wrappers;
 
 namespace Infrastructure.Services;
@@ -45,59 +44,10 @@ internal class ExifBaseService : IExifCoreService
             .Select(i => $".{i.ToLower()}")
             .ToArray();
     }
-    private static string ClearBackupFiles(DirectoryInfo directory)
-    {
-        var builder = new StringBuilder();
-        foreach (var dir in directory.GetDirectories())
-            builder.AppendLine(ClearBackupFiles(dir));
-
-        return builder.AppendLine(ExifToolWrapper.InstaExecute(
-            ["-overwrite_original", "-delete_original!", $"{directory.FullName}"]))
-            .ToString();
-    }
     #endregion
 
     #region Behavior-Instance
-    public string ClearBackupFiles(params string[] sources)
-    {
-        if (sources is null)
-            return string.Empty;
-
-        var builder = new StringBuilder();
-        foreach (var src in sources)
-            if (string.IsNullOrWhiteSpace(src) && Directory.Exists(src))
-                builder.AppendLine(ClearBackupFiles(new DirectoryInfo(src)));
-
-        var lines = CommonHelper.SplitStringLines(builder.ToString());
-
-        var directories = 0;
-        var images = 0;
-        var originals = 0;
-
-        const string directoryMessage = "directories scanned";
-        const string imagesMessage = "image files found";
-        const string originalsMessage = "original files deleted";
-        const char Splitter = ' ';
-
-        foreach (var line in lines)
-        {
-            var parts = line.Split(Splitter);
-            if (!int.TryParse(parts[0], out int value))
-                continue;
-
-            var msg = line.Remove(0, parts[0].Length + 1);
-            switch (msg)
-            {
-                case directoryMessage: directories += value; break;
-                case imagesMessage: images += value; break;
-                case originalsMessage: originals += value; break;
-                default: break;
-            }
-        }
-
-        return $"\n{directories} {directoryMessage}\n{images} {imagesMessage}\n{originals} backup files deleted";
-    }
-
+    public void ClearBackupFiles(params string[] sources) => ExifToolWrapper.DeleteOriginal(sources);
     public bool IsSupportedMediaFile(FileInfo file)
     {
         return SupportedMediaExtensions.Contains(file.Extension.ToLower());
@@ -150,9 +100,6 @@ internal class ExifBaseService : IExifCoreService
         return true;
     }
 
-    public string DateTimeFormat(DateTime dateTime)
-    {
-        return dateTime.ToString(Settings.ExifDateFormat);
-    }
+    public string DateTimeFormat(DateTime dateTime) => ExifToolWrapper.FormatDateTime(dateTime);
     #endregion
 }

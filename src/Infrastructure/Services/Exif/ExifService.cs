@@ -34,111 +34,10 @@ internal sealed class ExifService : ExifBaseService, IExifService
     }
     #endregion
 
-    #region Behavior-Static
-    private static ExifResult Read(ExifToolWrapper wrapper, ExifServiceSettings settings, List<string> args)
-    {
-        AppendArgumentsBySettings(settings, ref args, false);
-
-        return BuildResult(wrapper.Execute(args.ToArray()), settings.IgnoredTags);
-    }
-    private static bool TryWrite(ExifToolWrapper wrapper, ExifServiceSettings settings, List<string> args)
-    {
-        AppendArgumentsBySettings(settings, ref args, true);
-
-        var r = BuildResult(wrapper.Execute(args.ToArray()), Array.Empty<string>());
-        return r.Updates > 0 && r.Errors == default;
-    }
-
-    private static ExifResult BuildResult(string output, string[] ignores)
-    {
-        #region Constants
-        const char LineSeparator = '\n';
-        const char ExifTagStart = '-';
-        const char EqualsChar = '=';
-        const char TagSeparator = ':';
-        const char StatusSeparator = ' ';
-
-        const string updateMessage = "image files updated";
-        const string errorMessage = "files weren't updated due to errors";
-        const string couldReadMessage = "image files read";
-        const string couldNotReadMessage = "files could not be read";
-        const string unchanged = "image files unchanged";
-
-        const StringComparison comp = StringComparison.OrdinalIgnoreCase;
-        #endregion
-
-        var updates = 0;
-        var errors = 0;
-
-        var tags = new Dictionary<string, string>();
-        foreach (var line in output.Split(LineSeparator))
-            if (line.StartsWith(ExifTagStart))
-            {
-                var equal = line.IndexOf(EqualsChar);
-                var keyStart = line.IndexOf(TagSeparator);
-                var key = line.Substring(keyStart + 1, equal - keyStart - 1);
-
-                if (!Array.Exists(ignores, tag => key.StartsWith(tag, comp)))
-                    tags.Add(key, line.Substring(equal + 1).Trim());
-            }
-
-            else if (line.Contains(StatusSeparator, comp))
-            {
-                var index = line.IndexOf(StatusSeparator);
-                var value = line.Substring(0, index + 1);
-
-                if (int.TryParse(value, out int number))
-                {
-                    var message = line.Substring(index + 1);
-                    switch (message)
-                    {
-                        case couldReadMessage: updates += number; break;
-                        case couldNotReadMessage: errors += number; break;
-                        case updateMessage: updates += number; break;
-                        case errorMessage: errors += number; break;
-                        case unchanged: errors += number; break;
-                        default: break;
-                    }
-                }
-            }
-#if DEBUG
-            else
-            {
-
-            }
-#endif
-
-        return new ExifResult(output, tags, updates, errors);
-    }
-    private static void AppendArgumentsBySettings(ExifServiceSettings settings, ref List<string> args, bool isWrite)
-    {
-        if (settings.IgnoreMinorErrorsAndWarnings) args.Add("-m");
-
-        if (isWrite)
-        {
-            if (settings.AttemptToFixIncorrectOffsets) args.Add("-F");
-            if (settings.ClearBackupFilesOnComplete) args.Add("-overwrite_original");
-        }
-    }
-    #endregion
-
     #region Behavior-Instance
-    public Dictionary<string, string> ReadMetadata(string path)
-    {
-        return Read(Wrapper, Settings, new List<string> { path }).Tags;
-    }
-    public Dictionary<string, string> ReadJsonMetadata(string path)
-    {
-        return ConvertToExifTags(ReadMetadata(path));
-    }
-
-    public bool TryWriteMetadata(string path, Dictionary<string, string> tags)
-    {
-        var args = new List<string> { path };
-        args.AddRange(tags.Select(i => $"-{i.Key}={i.Value}"));
-
-        return TryWrite(Wrapper, Settings, args);
-    }
+    public Dictionary<string, string> ReadMetadata(string path) => Wrapper.ReadMetadata(path);
+    public Dictionary<string, string> ReadJsonMetadata(string path) => ConvertToExifTags(ReadMetadata(path));
+    public bool TryWriteMetadata(string path, Dictionary<string, string> tags) => Wrapper.TryWriteMetadata(path, tags);
 
     private Dictionary<string, string> ConvertToExifTags(Dictionary<string, string> tags)
     {
@@ -225,9 +124,5 @@ internal sealed class ExifService : ExifBaseService, IExifService
         Wrapper.Dispose();
         disposed = true;
     }
-    #endregion
-
-    #region Nested
-    private record struct ExifResult(string output, Dictionary<string, string> Tags, int Updates, int Errors);
     #endregion
 }

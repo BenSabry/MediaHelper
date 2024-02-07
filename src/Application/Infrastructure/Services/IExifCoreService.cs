@@ -5,7 +5,7 @@ public interface IExifCoreService
     public string ToolVersion { get; }
     public string WatcherVersion { get; }
 
-    string ClearBackupFiles(params string[] sources);
+    void ClearBackupFiles(params string[] sources);
 
     bool IsSupportedMediaFile(FileInfo file);
     bool IsSupportedMediaFile(string fileName);

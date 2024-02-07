@@ -16,8 +16,17 @@ public static class DependencyInjection
         services.AddTransient<IExifService, ExifService>();
         services.AddSingleton<ExifServiceSettings>();
 
-        services.AddTransient<ExifToolWrapper>();
         services.AddSingleton<ExifWatcherWrapper>();
+        services.AddTransient((IServiceProvider provider) =>
+        {
+            var settings = provider.GetService<ExifServiceSettings>();
+            ArgumentNullException.ThrowIfNull(settings);
+
+            return new ExifToolWrapper(
+                settings.ClearBackupFilesOnComplete,
+                settings.AttemptToFixIncorrectOffsets,
+                settings.IgnoreMinorErrorsAndWarnings);
+        });
 
         return services;
     }

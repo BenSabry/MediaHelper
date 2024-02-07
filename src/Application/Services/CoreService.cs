@@ -200,58 +200,6 @@ public sealed class CoreService : IDisposable
     #region Behavior-Instance
     public async Task RunAsync()
     {
-        #region TESTING
-        //var exif = GetService<IExifService>();
-        //var exifCore = GetService<IExifCoreService>();
-
-        //var path = @"C:\Dev\Repos\IMG_20180905_141132.jpg";
-        //var date = exifCore.DateTimeFormat(DateTime.Now.AddYears(-10));
-
-        //var tags = new Dictionary<string, string>()
-        //{
-        //    { "FileCreateDate", date },
-        //    { "DateTimeOriginal", date },
-        //    { "CreateDate", date },
-        //    { "SubSecCreateDate", date },
-        //    { "DateTimeDigitized", date }
-        //};
-
-        //var temp = $"{path}.copy";
-        //File.Copy(path, temp, true);
-
-        //var before = exif.ReadMetadata(temp);
-        //var result = exif.TryUpdate(temp, tags);
-        //var after = exif.ReadMetadata(temp);
-
-        //File.Delete(temp);
-
-        //var diff = new List<(string Key, string Before, string After)>();
-
-        //foreach (var tag in after)
-        //{
-        //    if (!before.TryGetValue(tag.Key, out string? value))
-        //        diff.Add((tag.Key, string.Empty, tag.Value));
-
-        //    else if (!tag.Value.Equals(value, StringComparison.Ordinal))
-        //        diff.Add((tag.Key, value, tag.Value));
-        //}
-        //foreach (var tag in before)
-        //{
-        //    if (!after.TryGetValue(tag.Key, out string? value))
-        //        diff.Add((tag.Key, tag.Value, string.Empty));
-
-        //    else if (!tag.Value.Equals(value, StringComparison.Ordinal))
-        //        diff.Add((tag.Key, tag.Value, value));
-        //}
-
-        ////var diff = after
-        ////    .Where(a => !a.Value.Equals(before.First(b => a.Key.Equals(b.Key)).Value))
-        ////    .ToList();
-
-        //return;
-        #endregion
-
-        #region ActualRun
         ShowWelcomeMessage();
         if (!SourcesAreValidToUse())
             return;
@@ -268,72 +216,6 @@ public sealed class CoreService : IDisposable
                 () => (GetService<IExifService>(), GetService<ILoggerService>()),
                 LogProgress,
                 DelayInMilliseconds);
-        #endregion
-
-        #region TESTING
-        return;
-        //var dict = new ConcurrentDictionary<string, int>();
-
-        //await SkipProcessedFiles(GetMediaFiles())
-        //    .ParallelForEachAsync(
-        //        TasksCount,
-        //        (IMediaFile media, long i, (IExifService exif, ILoggerService logger) arg)
-        //            =>
-        //        {
-        //            if (media.GetJsonFile() is { Exists: true } json)
-        //            {
-        //                var tags = arg.exif.ReadMetadata(json.FullName);
-        //                foreach (var tag in tags)
-        //                    if (dict.TryAdd(tag.Key, default))
-        //                    {
-        //                        var meta = JsonSerializer.Serialize(new Dictionary<string, string>[]
-        //                            { tags, arg.exif.ReadMetadata(media.GetFile().FullName) });
-
-        //                        arg.logger.Log(LogOperation.Copy, tag.Key, tag.Value, meta);
-        //                        arg.logger.LogSuccess(tag.Key);
-        //                    }
-
-        //                    else dict[tag.Key]++;
-        //            }
-
-
-        //            //var fMeta = arg.exif.ReadMetadata(file.FullName);
-        //            //if (json.Exists)
-        //            //{
-        //            //    var jMeta = arg.exif.ReadMetadata(json.FullName);
-        //            //    foreach (var tag in jMeta)
-        //            //        if (dict.TryAdd(tag.Key, default))
-        //            //        {
-        //            //            arg.logger.Log(LogOperation.Copy, tag.Key);
-        //            //            arg.logger.LogSuccess(tag.Key);
-        //            //        }
-
-        //            //        else dict[tag.Key]++;
-
-
-
-        //            //    //takeoutService.TryDeserialize(File.ReadAllText(json.FullName), out var metadata);
-
-        //            //    //Console.WriteLine(string.Join("\n", jMeta.Select(i => $"{i.Key}:{i.Value}")));
-
-        //            //    //if (metadata is { Value.creationTime.timestamp.Length: > 0 }
-        //            //    //    and { Value.creationTimestampMs.Length: > 0 })
-        //            //    //{
-        //            //    //}
-
-        //            //    //if (metadata.HasValue
-        //            //    //    && !string.IsNullOrWhiteSpace(metadata.Value.creationTimestampMs)
-        //            //    //    && !string.IsNullOrWhiteSpace(metadata.Value.creationTime.timestamp))
-        //            //    //{
-        //            //    //}
-
-        //            //    //if (DateHelper.TryParseDateTimeFromNumber(metadata.Value.creationTimestampMs, out var date))
-        //            //    //    Console.WriteLine(date);
-        //            //}
-
-        //        }, () => (GetService<IExifService>(), GetService<ILoggerService>()),
-        //        null, DelayInMilliseconds);
-        #endregion
     }
 
     private bool SourcesAreValidToUse()

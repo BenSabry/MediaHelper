@@ -130,7 +130,10 @@ internal sealed class LoggerService : ILoggerService
         while (Queue.TryDequeue(out var i))
             sb.AppendLine($"{i.Time}{LogSeparator}{i.Value}");
 
-        File.AppendAllText(CurrentFilePath, sb.ToString());
+        CommonHelper.RetryIfFails(() =>
+        {
+            File.AppendAllText(CurrentFilePath, sb.ToString());
+        });
     }
     #endregion
 
