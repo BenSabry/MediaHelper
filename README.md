@@ -38,18 +38,8 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
 8. Attempt to fix file metadata (like duplications/incorrect offsets etc.)<br />
 9. Remove any empty directories or temporary backups that were created.<br /><br />
 
-
-# Fixable Issues
-[<b>*Synology Photos: Not Using Taken Date*</b>](https://www.reddit.com/r/synology/comments/kgy604/synology_photos_not_using_taken_date/)<br />
-[<b>*Synology Photos: organizes everything by modified date instead of creation date*</b>](https://www.reddit.com/r/synology/comments/120jsvk/synology_photos_organizes_everything_by_modified/)<br />
-[<b>*Synology Photos: Indexing photos/videos with wrong date*</b>](https://www.reddit.com/r/synology/comments/qj9wya/synology_photos_indexing_photosvideos_with_wrong/)<br />
-[<b>*Synology Photos: Best practice for photos with no taken date*</b>](https://www.reddit.com/r/synology/comments/rn5cvm/best_practice_for_photos_with_no_taken_date/)<br />
-
-# Tech/Tools used
-<b>*.NET*</b>: is the free, open-source, cross-platform framework for building modern apps and powerful cloud services.<br />
-<b>*ExifTool*</b>: is a customizable set of Perl modules plus a full-featured command-line application for reading and writing meta information in a wide variety of files.<br />
-
 # AppSettings
+Example of working AppSettings.json.
 ```JSON
 {
     "TasksCount": 2,
@@ -73,6 +63,16 @@ b. Increase the <b>*TasksCount*</b> in <b>*[AppSettings.json](#AppSettings)*</b>
     ]
 }
 ```
+
+# Fixable Issues
+[<b>*Synology Photos: Not Using Taken Date*</b>](https://www.reddit.com/r/synology/comments/kgy604/synology_photos_not_using_taken_date/)<br />
+[<b>*Synology Photos: organizes everything by modified date instead of creation date*</b>](https://www.reddit.com/r/synology/comments/120jsvk/synology_photos_organizes_everything_by_modified/)<br />
+[<b>*Synology Photos: Indexing photos/videos with wrong date*</b>](https://www.reddit.com/r/synology/comments/qj9wya/synology_photos_indexing_photosvideos_with_wrong/)<br />
+[<b>*Synology Photos: Best practice for photos with no taken date*</b>](https://www.reddit.com/r/synology/comments/rn5cvm/best_practice_for_photos_with_no_taken_date/)<br />
+
+# Tech/Tools used
+<b>*[.NET](https://dotnet.microsoft.com/)*</b>: is the free, open-source, cross-platform framework for building modern apps and powerful cloud services.<br />
+<b>*[ExifToolWrapper](https://github.com/BenSabry/ExifToolWrapper)*</b>: is a C# library that provides various helper methods and features using ExifTool.<br />
 
 # AppSettings Explanation
 <b>*TasksCount*</b>: (number) of <b>*Tasks/Threads*</b> to work simultaneously.<br />
